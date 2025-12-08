@@ -63,13 +63,6 @@ const funds = [
     icon: TrendingUp,
     color: 'gold',
   },
-  {
-    name: 'Beneficiary Aid',
-    type: 'Welfare Support',
-    description: 'Humanitarian assistance for funeral, education, medical, marriage, emergency and general welfare cases funded by Takaful.',
-    icon: Users,
-    color: 'navy',
-  },
 ];
 
 export default function Index() {
