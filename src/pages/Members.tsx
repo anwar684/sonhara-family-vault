@@ -1,9 +1,12 @@
 import { useState } from 'react';
+import { format } from 'date-fns';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { MemberTable } from '@/components/dashboard/MemberTable';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { 
   Select,
   SelectContent,
@@ -21,10 +24,11 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { FamilyMember } from '@/types';
-import { Plus, Search, Filter, UserPlus, Loader2 } from 'lucide-react';
+import { Plus, Search, Filter, UserPlus, Loader2, CalendarIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useFamilyMembers, useCreateFamilyMember, useDeleteFamilyMember } from '@/hooks/useFamilyMembers';
+import { cn } from '@/lib/utils';
 
 export default function Members() {
   const navigate = useNavigate();
@@ -42,6 +46,8 @@ export default function Members() {
     email: '',
     takafulAmount: '',
     plusAmount: '',
+    initialContribution: '',
+    joinedDate: new Date(),
   });
 
   // Transform DB data to FamilyMember type
@@ -81,10 +87,12 @@ export default function Members() {
       email: newMember.email || undefined,
       takaful_amount: parseFloat(newMember.takafulAmount) || 0,
       plus_amount: parseFloat(newMember.plusAmount) || 0,
+      initial_contribution: parseFloat(newMember.initialContribution) || 0,
+      joined_date: format(newMember.joinedDate, 'yyyy-MM-dd'),
     });
 
     setIsAddModalOpen(false);
-    setNewMember({ name: '', phone: '', email: '', takafulAmount: '', plusAmount: '' });
+    setNewMember({ name: '', phone: '', email: '', takafulAmount: '', plusAmount: '', initialContribution: '', joinedDate: new Date() });
   };
 
   const handleDeleteMember = (member: FamilyMember) => {
@@ -232,6 +240,45 @@ export default function Members() {
                   onChange={(e) => setNewMember({ ...newMember, plusAmount: e.target.value })}
                   placeholder="2000"
                 />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="initialContribution">Initial Contribution (PKR)</Label>
+                <Input
+                  id="initialContribution"
+                  type="number"
+                  value={newMember.initialContribution}
+                  onChange={(e) => setNewMember({ ...newMember, initialContribution: e.target.value })}
+                  placeholder="0"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label>Joining Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !newMember.joinedDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {newMember.joinedDate ? format(newMember.joinedDate, "PPP") : <span>Pick a date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={newMember.joinedDate}
+                      onSelect={(date) => date && setNewMember({ ...newMember, joinedDate: date })}
+                      disabled={(date) => date > new Date()}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
           </div>

@@ -173,6 +173,7 @@ export type Database = {
           created_at: string
           email: string | null
           id: string
+          initial_contribution: number
           joined_date: string
           name: string
           phone: string
@@ -187,6 +188,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          initial_contribution?: number
           joined_date?: string
           name: string
           phone: string
@@ -201,6 +203,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          initial_contribution?: number
           joined_date?: string
           name?: string
           phone?: string
