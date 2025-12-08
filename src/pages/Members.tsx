@@ -20,16 +20,19 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { mockMembers } from '@/lib/mockData';
 import { FamilyMember } from '@/types';
-import { Plus, Search, Filter, UserPlus } from 'lucide-react';
+import { Plus, Search, Filter, UserPlus, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import { useFamilyMembers, useCreateFamilyMember, useDeleteFamilyMember } from '@/hooks/useFamilyMembers';
 
 export default function Members() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [members, setMembers] = useState(mockMembers);
+  const { data: membersData, isLoading } = useFamilyMembers();
+  const createMember = useCreateFamilyMember();
+  const deleteMember = useDeleteFamilyMember();
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -41,6 +44,19 @@ export default function Members() {
     plusAmount: '',
   });
 
+  // Transform DB data to FamilyMember type
+  const members: FamilyMember[] = (membersData || []).map((m) => ({
+    id: m.id,
+    name: m.name,
+    phone: m.phone,
+    email: m.email || undefined,
+    status: m.status as 'active' | 'inactive',
+    takafulAmount: m.takaful_amount,
+    plusAmount: m.plus_amount,
+    joinedDate: m.joined_date,
+    avatarUrl: m.avatar_url || undefined,
+  }));
+
   const filteredMembers = members.filter((member) => {
     const matchesSearch = member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       member.phone.includes(searchQuery) ||
@@ -49,7 +65,7 @@ export default function Members() {
     return matchesSearch && matchesStatus;
   });
 
-  const handleAddMember = () => {
+  const handleAddMember = async () => {
     if (!newMember.name || !newMember.phone) {
       toast({
         title: 'Error',
@@ -59,36 +75,35 @@ export default function Members() {
       return;
     }
 
-    const member: FamilyMember = {
-      id: String(members.length + 1),
+    await createMember.mutateAsync({
       name: newMember.name,
       phone: newMember.phone,
       email: newMember.email || undefined,
-      status: 'active',
-      takafulAmount: parseFloat(newMember.takafulAmount) || 0,
-      plusAmount: parseFloat(newMember.plusAmount) || 0,
-      joinedDate: new Date().toISOString().split('T')[0],
-    };
+      takaful_amount: parseFloat(newMember.takafulAmount) || 0,
+      plus_amount: parseFloat(newMember.plusAmount) || 0,
+    });
 
-    setMembers([...members, member]);
     setIsAddModalOpen(false);
     setNewMember({ name: '', phone: '', email: '', takafulAmount: '', plusAmount: '' });
-    
-    toast({
-      title: 'Member Added',
-      description: `${member.name} has been added to the family.`,
-    });
   };
 
   const handleDeleteMember = (member: FamilyMember) => {
-    setMembers(members.filter((m) => m.id !== member.id));
-    toast({
-      title: 'Member Removed',
-      description: `${member.name} has been removed.`,
-    });
+    deleteMember.mutate(member.id);
   };
 
   const handleLogout = () => navigate('/');
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <Header isLoggedIn userRole="admin" userName="Admin" onLogout={handleLogout} />
+        <main className="flex-1 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -224,9 +239,9 @@ export default function Members() {
             <Button variant="outline" onClick={() => setIsAddModalOpen(false)}>
               Cancel
             </Button>
-            <Button variant="gold" onClick={handleAddMember}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Member
+            <Button variant="gold" onClick={handleAddMember} disabled={createMember.isPending}>
+              {createMember.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
+              {createMember.isPending ? 'Adding...' : 'Add Member'}
             </Button>
           </DialogFooter>
         </DialogContent>
