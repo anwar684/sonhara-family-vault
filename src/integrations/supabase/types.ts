@@ -14,16 +14,332 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      beneficiaries: {
+        Row: {
+          address: string | null
+          created_at: string
+          family_member_id: string | null
+          id: string
+          is_family_member: boolean
+          name: string
+          notes: string | null
+          phone: string | null
+          relationship: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          family_member_id?: string | null
+          id?: string
+          is_family_member?: boolean
+          name: string
+          notes?: string | null
+          phone?: string | null
+          relationship?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          family_member_id?: string | null
+          id?: string
+          is_family_member?: boolean
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          relationship?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "beneficiaries_family_member_id_fkey"
+            columns: ["family_member_id"]
+            isOneToOne: false
+            referencedRelation: "family_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      beneficiary_cases: {
+        Row: {
+          approved_amount: number | null
+          approved_at: string | null
+          approved_by: string | null
+          beneficiary_id: string
+          case_type: Database["public"]["Enums"]["case_type"]
+          created_at: string
+          description: string | null
+          disbursed_amount: number | null
+          id: string
+          rejection_reason: string | null
+          requested_amount: number
+          requested_by: string | null
+          status: Database["public"]["Enums"]["case_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          approved_amount?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
+          beneficiary_id: string
+          case_type: Database["public"]["Enums"]["case_type"]
+          created_at?: string
+          description?: string | null
+          disbursed_amount?: number | null
+          id?: string
+          rejection_reason?: string | null
+          requested_amount: number
+          requested_by?: string | null
+          status?: Database["public"]["Enums"]["case_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          approved_amount?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
+          beneficiary_id?: string
+          case_type?: Database["public"]["Enums"]["case_type"]
+          created_at?: string
+          description?: string | null
+          disbursed_amount?: number | null
+          id?: string
+          rejection_reason?: string | null
+          requested_amount?: number
+          requested_by?: string | null
+          status?: Database["public"]["Enums"]["case_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "beneficiary_cases_beneficiary_id_fkey"
+            columns: ["beneficiary_id"]
+            isOneToOne: false
+            referencedRelation: "beneficiaries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      case_disbursements: {
+        Row: {
+          amount: number
+          case_id: string
+          created_at: string
+          disbursed_by: string | null
+          disbursement_date: string
+          id: string
+          notes: string | null
+          payment_method: string | null
+          reference_number: string | null
+        }
+        Insert: {
+          amount: number
+          case_id: string
+          created_at?: string
+          disbursed_by?: string | null
+          disbursement_date?: string
+          id?: string
+          notes?: string | null
+          payment_method?: string | null
+          reference_number?: string | null
+        }
+        Update: {
+          amount?: number
+          case_id?: string
+          created_at?: string
+          disbursed_by?: string | null
+          disbursement_date?: string
+          id?: string
+          notes?: string | null
+          payment_method?: string | null
+          reference_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_disbursements_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "beneficiary_cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      family_members: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string | null
+          id: string
+          joined_date: string
+          name: string
+          phone: string
+          plus_amount: number
+          status: string
+          takaful_amount: number
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          joined_date?: string
+          name: string
+          phone: string
+          plus_amount?: number
+          status?: string
+          takaful_amount?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          joined_date?: string
+          name?: string
+          phone?: string
+          plus_amount?: number
+          status?: string
+          takaful_amount?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string
+          due_amount: number
+          fund_type: string
+          id: string
+          member_id: string
+          month: string
+          notes: string | null
+          paid_date: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          due_amount: number
+          fund_type: string
+          id?: string
+          member_id: string
+          month: string
+          notes?: string | null
+          paid_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          due_amount?: number
+          fund_type?: string
+          id?: string
+          member_id?: string
+          month?: string
+          notes?: string | null
+          paid_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "family_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string | null
+          full_name: string
+          id: string
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name: string
+          id?: string
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string
+          id?: string
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_role: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "member"
+      case_status: "pending" | "approved" | "rejected" | "completed"
+      case_type:
+        | "funeral"
+        | "education"
+        | "medical"
+        | "marriage"
+        | "emergency"
+        | "welfare"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +466,17 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "member"],
+      case_status: ["pending", "approved", "rejected", "completed"],
+      case_type: [
+        "funeral",
+        "education",
+        "medical",
+        "marriage",
+        "emergency",
+        "welfare",
+      ],
+    },
   },
 } as const

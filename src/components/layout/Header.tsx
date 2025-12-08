@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Menu, X, User, LogOut } from 'lucide-react';
+import { Menu, X, User, LogOut, Heart } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -21,11 +21,13 @@ export function Header({ isLoggedIn = false, userRole, userName, onLogout }: Hea
           { href: '/dashboard', label: 'Dashboard' },
           { href: '/members', label: 'Members' },
           { href: '/payments', label: 'Payments' },
+          { href: '/beneficiaries', label: 'Beneficiaries', icon: Heart },
           { href: '/reports', label: 'Reports' },
         ]
       : [
           { href: '/my-dashboard', label: 'My Dashboard' },
           { href: '/my-payments', label: 'My Payments' },
+          { href: '/beneficiaries', label: 'Beneficiaries', icon: Heart },
         ]
     : [
         { href: '/#features', label: 'Features' },
@@ -52,10 +54,11 @@ export function Header({ isLoggedIn = false, userRole, userName, onLogout }: Hea
               key={link.href}
               to={link.href}
               className={cn(
-                'text-sm font-medium transition-colors hover:text-gold',
+                'text-sm font-medium transition-colors hover:text-gold flex items-center gap-1',
                 location.pathname === link.href ? 'text-gold' : 'text-muted-foreground'
               )}
             >
+              {link.icon && <link.icon className="h-4 w-4" />}
               {link.label}
             </Link>
           ))}
@@ -107,13 +110,14 @@ export function Header({ isLoggedIn = false, userRole, userName, onLogout }: Hea
                 key={link.href}
                 to={link.href}
                 className={cn(
-                  'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                  'px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2',
                   location.pathname === link.href
                     ? 'bg-gold/10 text-gold'
                     : 'hover:bg-muted'
                 )}
                 onClick={() => setMobileMenuOpen(false)}
               >
+                {link.icon && <link.icon className="h-4 w-4" />}
                 {link.label}
               </Link>
             ))}
