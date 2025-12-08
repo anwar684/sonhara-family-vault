@@ -21,16 +21,70 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { mockPayments, mockMembers, formatCurrency, formatMonth } from '@/lib/mockData';
+import { formatCurrency } from '@/lib/mockData';
 import { Payment, FundType } from '@/types';
-import { Plus, Search, Filter, Download, CreditCard } from 'lucide-react';
+import { Plus, Search, Download, CreditCard, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import { useFamilyMembers } from '@/hooks/useFamilyMembers';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function Payments() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [payments, setPayments] = useState(mockPayments);
+  const queryClient = useQueryClient();
+  
+  const { data: membersData, isLoading: membersLoading } = useFamilyMembers();
+  
+  // Fetch payments from database
+  const { data: paymentsData, isLoading: paymentsLoading } = useQuery({
+    queryKey: ['payments'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('payments')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Create payment mutation
+  const createPayment = useMutation({
+    mutationFn: async (payment: {
+      member_id: string;
+      fund_type: string;
+      amount: number;
+      due_amount: number;
+      month: string;
+      status: string;
+      paid_date: string;
+    }) => {
+      const { data, error } = await supabase
+        .from('payments')
+        .insert(payment)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      toast({
+        title: 'Payment Recorded',
+        description: 'Payment has been recorded successfully.',
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to record payment.',
+        variant: 'destructive',
+      });
+    },
+  });
+
   const [searchQuery, setSearchQuery] = useState('');
   const [fundFilter, setFundFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -42,10 +96,24 @@ export default function Payments() {
     month: new Date().toISOString().slice(0, 7),
   });
 
-  const memberNames = mockMembers.reduce(
+  // Transform DB members to name lookup
+  const members = membersData || [];
+  const memberNames = members.reduce(
     (acc, m) => ({ ...acc, [m.id]: m.name }),
     {} as Record<string, string>
   );
+
+  // Transform DB payments to Payment type
+  const payments: Payment[] = (paymentsData || []).map((p) => ({
+    id: p.id,
+    memberId: p.member_id,
+    fundType: p.fund_type as FundType,
+    amount: p.amount,
+    dueAmount: p.due_amount,
+    month: p.month,
+    paidDate: p.paid_date || undefined,
+    status: p.status as 'paid' | 'pending' | 'partial',
+  }));
 
   const filteredPayments = payments.filter((payment) => {
     const memberName = memberNames[payment.memberId]?.toLowerCase() || '';
@@ -58,7 +126,7 @@ export default function Payments() {
   const takafulPayments = filteredPayments.filter((p) => p.fundType === 'takaful');
   const plusPayments = filteredPayments.filter((p) => p.fundType === 'plus');
 
-  const handleAddPayment = () => {
+  const handleAddPayment = async () => {
     if (!newPayment.memberId || !newPayment.amount) {
       toast({
         title: 'Error',
@@ -68,34 +136,41 @@ export default function Payments() {
       return;
     }
 
-    const member = mockMembers.find((m) => m.id === newPayment.memberId);
+    const member = members.find((m) => m.id === newPayment.memberId);
     const dueAmount = newPayment.fundType === 'takaful' 
-      ? member?.takafulAmount || 0 
-      : member?.plusAmount || 0;
+      ? member?.takaful_amount || 0 
+      : member?.plus_amount || 0;
     const amount = parseFloat(newPayment.amount);
 
-    const payment: Payment = {
-      id: `p${payments.length + 1}`,
-      memberId: newPayment.memberId,
-      fundType: newPayment.fundType,
+    await createPayment.mutateAsync({
+      member_id: newPayment.memberId,
+      fund_type: newPayment.fundType,
       amount,
-      dueAmount,
+      due_amount: dueAmount,
       month: newPayment.month,
-      paidDate: new Date().toISOString().split('T')[0],
       status: amount >= dueAmount ? 'paid' : amount > 0 ? 'partial' : 'pending',
-    };
+      paid_date: new Date().toISOString().split('T')[0],
+    });
 
-    setPayments([payment, ...payments]);
     setIsAddModalOpen(false);
     setNewPayment({ memberId: '', fundType: 'takaful', amount: '', month: new Date().toISOString().slice(0, 7) });
-
-    toast({
-      title: 'Payment Recorded',
-      description: `${formatCurrency(amount)} recorded for ${memberNames[newPayment.memberId]}.`,
-    });
   };
 
+  const isLoading = membersLoading || paymentsLoading;
+
   const handleLogout = () => navigate('/');
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <Header isLoggedIn userRole="admin" userName="Admin" onLogout={handleLogout} />
+        <main className="flex-1 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -200,7 +275,7 @@ export default function Payments() {
                   <SelectValue placeholder="Choose a member" />
                 </SelectTrigger>
                 <SelectContent>
-                  {mockMembers.filter(m => m.status === 'active').map((member) => (
+                  {members.filter(m => m.status === 'active').map((member) => (
                     <SelectItem key={member.id} value={member.id}>
                       {member.name}
                     </SelectItem>
@@ -244,11 +319,11 @@ export default function Payments() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddModalOpen(false)}>
+            <Button variant="outline" onClick={() => setIsAddModalOpen(false)} disabled={createPayment.isPending}>
               Cancel
             </Button>
-            <Button variant="gold" onClick={handleAddPayment}>
-              <Plus className="h-4 w-4 mr-2" />
+            <Button variant="gold" onClick={handleAddPayment} disabled={createPayment.isPending}>
+              {createPayment.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
               Record Payment
             </Button>
           </DialogFooter>
