@@ -12,6 +12,8 @@ export interface FamilyMemberDB {
   plus_amount: number;
   initial_contribution: number;
   joined_date: string;
+  takaful_joined_date: string | null;
+  plus_joined_date: string | null;
   avatar_url: string | null;
   user_id: string | null;
   created_at: string;
@@ -46,6 +48,8 @@ export function useCreateFamilyMember() {
       plus_amount?: number;
       initial_contribution?: number;
       joined_date?: string;
+      takaful_joined_date?: string;
+      plus_joined_date?: string;
     }) => {
       const { data, error } = await supabase
         .from('family_members')
@@ -57,6 +61,8 @@ export function useCreateFamilyMember() {
           plus_amount: member.plus_amount || 0,
           initial_contribution: member.initial_contribution || 0,
           joined_date: member.joined_date || new Date().toISOString().split('T')[0],
+          takaful_joined_date: member.takaful_joined_date || member.joined_date || new Date().toISOString().split('T')[0],
+          plus_joined_date: member.plus_joined_date || member.joined_date || new Date().toISOString().split('T')[0],
         })
         .select()
         .single();

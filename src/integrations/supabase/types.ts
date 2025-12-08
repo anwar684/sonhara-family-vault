@@ -178,8 +178,10 @@ export type Database = {
           name: string
           phone: string
           plus_amount: number
+          plus_joined_date: string | null
           status: string
           takaful_amount: number
+          takaful_joined_date: string | null
           updated_at: string
           user_id: string | null
         }
@@ -193,8 +195,10 @@ export type Database = {
           name: string
           phone: string
           plus_amount?: number
+          plus_joined_date?: string | null
           status?: string
           takaful_amount?: number
+          takaful_joined_date?: string | null
           updated_at?: string
           user_id?: string | null
         }
@@ -208,8 +212,10 @@ export type Database = {
           name?: string
           phone?: string
           plus_amount?: number
+          plus_joined_date?: string | null
           status?: string
           takaful_amount?: number
+          takaful_joined_date?: string | null
           updated_at?: string
           user_id?: string | null
         }
