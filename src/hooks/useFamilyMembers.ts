@@ -10,6 +10,7 @@ export interface FamilyMemberDB {
   status: string;
   takaful_amount: number;
   plus_amount: number;
+  initial_contribution: number;
   joined_date: string;
   avatar_url: string | null;
   user_id: string | null;
@@ -43,6 +44,8 @@ export function useCreateFamilyMember() {
       email?: string;
       takaful_amount?: number;
       plus_amount?: number;
+      initial_contribution?: number;
+      joined_date?: string;
     }) => {
       const { data, error } = await supabase
         .from('family_members')
@@ -52,6 +55,8 @@ export function useCreateFamilyMember() {
           email: member.email || null,
           takaful_amount: member.takaful_amount || 0,
           plus_amount: member.plus_amount || 0,
+          initial_contribution: member.initial_contribution || 0,
+          joined_date: member.joined_date || new Date().toISOString().split('T')[0],
         })
         .select()
         .single();
