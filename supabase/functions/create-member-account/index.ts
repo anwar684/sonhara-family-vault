@@ -20,12 +20,21 @@ Deno.serve(async (req) => {
     })
 
     // Verify the requesting user is admin
-    const authHeader = req.headers.get('Authorization')!
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      console.error('No authorization header provided')
+      return new Response(JSON.stringify({ error: 'No authorization header. Please login first.' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+    
     const token = authHeader.replace('Bearer ', '')
     const { data: { user: requestingUser }, error: authError } = await supabaseAdmin.auth.getUser(token)
     
     if (authError || !requestingUser) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      console.error('Auth error:', authError?.message || 'User not found')
+      return new Response(JSON.stringify({ error: 'Session expired. Please login again.' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
