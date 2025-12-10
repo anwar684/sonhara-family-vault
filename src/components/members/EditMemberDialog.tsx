@@ -14,11 +14,12 @@ import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CalendarIcon, Loader2, UserCheck, Key, Eye, EyeOff } from 'lucide-react';
+import { CalendarIcon, Loader2, UserCheck, Key, Eye, EyeOff, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { FamilyMemberDB, useUpdateFamilyMember } from '@/hooks/useFamilyMembers';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { Database } from '@/integrations/supabase/types';
 
 interface EditMemberDialogProps {
   open: boolean;
@@ -49,6 +50,47 @@ export function EditMemberDialog({ open, onOpenChange, member }: EditMemberDialo
   const [accountPassword, setAccountPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [creatingAccount, setCreatingAccount] = useState(false);
+  const [memberRole, setMemberRole] = useState<Database['public']['Enums']['app_role']>('member');
+  const [updatingRole, setUpdatingRole] = useState(false);
+
+  // Fetch member's current role when dialog opens
+  useEffect(() => {
+    const fetchRole = async () => {
+      if (member?.user_id) {
+        const { data } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', member.user_id)
+          .single();
+        if (data) {
+          setMemberRole(data.role);
+        }
+      }
+    };
+    fetchRole();
+  }, [member?.user_id]);
+
+  const handleRoleChange = async (newRole: Database['public']['Enums']['app_role']) => {
+    if (!member?.user_id) return;
+    
+    setUpdatingRole(true);
+    try {
+      const { error } = await supabase
+        .from('user_roles')
+        .update({ role: newRole })
+        .eq('user_id', member.user_id);
+      
+      if (error) throw error;
+      
+      setMemberRole(newRole);
+      toast({ title: 'Success', description: `Role updated to ${newRole}` });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to update role';
+      toast({ title: 'Error', description: message, variant: 'destructive' });
+    } finally {
+      setUpdatingRole(false);
+    }
+  };
 
   useEffect(() => {
     if (member) {
@@ -312,9 +354,30 @@ export function EditMemberDialog({ open, onOpenChange, member }: EditMemberDialo
             </div>
             
             {member?.user_id ? (
-              <p className="text-sm text-muted-foreground">
-                This member has an active login account. They can login using their credentials.
-              </p>
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  This member has an active login account. They can login using their credentials.
+                </p>
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-4 w-4 text-muted-foreground" />
+                    <Label>Role</Label>
+                  </div>
+                  <Select 
+                    value={memberRole} 
+                    onValueChange={(value: Database['public']['Enums']['app_role']) => handleRoleChange(value)}
+                    disabled={updatingRole}
+                  >
+                    <SelectTrigger className="w-[140px]">
+                      {updatingRole ? <Loader2 className="h-4 w-4 animate-spin" /> : <SelectValue />}
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="member">Member</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             ) : (
               <>
                 <p className="text-sm text-muted-foreground">
