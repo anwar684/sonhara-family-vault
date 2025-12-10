@@ -1,13 +1,29 @@
 import { Payment } from '@/types';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { formatCurrency, formatMonth } from '@/lib/mockData';
 import { cn } from '@/lib/utils';
-import { CheckCircle2, Clock, AlertTriangle, Loader2 } from 'lucide-react';
+import { CheckCircle2, Clock, AlertTriangle, Loader2, MoreVertical, Trash2, CheckCheck } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useState } from 'react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
 
 interface PaymentHistoryProps {
   payments: Payment[];
@@ -18,7 +34,9 @@ interface PaymentHistoryProps {
 export function PaymentHistory({ payments, showMember = false, memberNames = {} }: PaymentHistoryProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [markingPaymentId, setMarkingPaymentId] = useState<string | null>(null);
+  const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [paymentToDelete, setPaymentToDelete] = useState<Payment | null>(null);
 
   const markAsPaid = useMutation({
     mutationFn: async (payment: Payment) => {
@@ -38,7 +56,7 @@ export function PaymentHistory({ payments, showMember = false, memberNames = {} 
         title: 'Payment Updated',
         description: 'Payment has been marked as paid.',
       });
-      setMarkingPaymentId(null);
+      setLoadingId(null);
     },
     onError: (error: Error) => {
       toast({
@@ -46,13 +64,53 @@ export function PaymentHistory({ payments, showMember = false, memberNames = {} 
         description: error.message || 'Failed to update payment.',
         variant: 'destructive',
       });
-      setMarkingPaymentId(null);
+      setLoadingId(null);
+    },
+  });
+
+  const deletePayment = useMutation({
+    mutationFn: async (paymentId: string) => {
+      const { error } = await supabase
+        .from('payments')
+        .delete()
+        .eq('id', paymentId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      toast({
+        title: 'Payment Deleted',
+        description: 'Payment record has been deleted.',
+      });
+      setLoadingId(null);
+      setDeleteDialogOpen(false);
+      setPaymentToDelete(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete payment.',
+        variant: 'destructive',
+      });
+      setLoadingId(null);
     },
   });
 
   const handleMarkAsPaid = (payment: Payment) => {
-    setMarkingPaymentId(payment.id);
+    setLoadingId(payment.id);
     markAsPaid.mutate(payment);
+  };
+
+  const handleDeleteClick = (payment: Payment) => {
+    setPaymentToDelete(payment);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (paymentToDelete) {
+      setLoadingId(paymentToDelete.id);
+      deletePayment.mutate(paymentToDelete.id);
+    }
   };
 
   const getStatusIcon = (status: Payment['status']) => {
@@ -135,23 +193,52 @@ export function PaymentHistory({ payments, showMember = false, memberNames = {} 
               )}
             </div>
             {getStatusBadge(payment.status)}
-            {payment.status === 'pending' && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleMarkAsPaid(payment)}
-                disabled={markingPaymentId === payment.id}
-              >
-                {markingPaymentId === payment.id ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  'Mark Paid'
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8" disabled={loadingId === payment.id}>
+                  {loadingId === payment.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <MoreVertical className="h-4 w-4" />
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-popover">
+                {payment.status === 'pending' && (
+                  <DropdownMenuItem onClick={() => handleMarkAsPaid(payment)}>
+                    <CheckCheck className="mr-2 h-4 w-4" />
+                    Mark as Paid
+                  </DropdownMenuItem>
                 )}
-              </Button>
-            )}
+                <DropdownMenuItem 
+                  onClick={() => handleDeleteClick(payment)}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       ))}
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Payment Record</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this payment record for {paymentToDelete && formatMonth(paymentToDelete.month)}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
