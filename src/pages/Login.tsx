@@ -15,18 +15,18 @@ export default function Login() {
   
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { signIn, user, userRole } = useAuth();
+  const { signIn, user, userRole, isLoading: authLoading } = useAuth();
 
-  // Redirect if already logged in
+  // Redirect if already logged in (only after auth state is loaded)
   useEffect(() => {
-    if (user) {
+    if (!authLoading && user) {
       if (userRole === 'admin') {
         navigate('/dashboard');
       } else {
         navigate('/my-dashboard');
       }
     }
-  }, [user, userRole, navigate]);
+  }, [user, userRole, authLoading, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
