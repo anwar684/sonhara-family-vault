@@ -6,7 +6,7 @@ const corsHeaders = {
 }
 
 const DEFAULT_ADMIN_EMAIL = 'admin@sonhara.com'
-const DEFAULT_ADMIN_PASSWORD = 'Admin@123'
+const DEFAULT_ADMIN_PASSWORD = 'S1dd1que#1947'
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -27,31 +27,19 @@ Deno.serve(async (req) => {
     const existingAdmin = existingUsers?.users?.find(u => u.email?.toLowerCase() === DEFAULT_ADMIN_EMAIL.toLowerCase())
 
     if (existingAdmin) {
-      // Check if user has admin role
-      const { data: roleData } = await supabaseAdmin
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', existingAdmin.id)
-        .maybeSingle()
+      // Always update password for existing admin
+      await supabaseAdmin.auth.admin.updateUserById(existingAdmin.id, {
+        password: DEFAULT_ADMIN_PASSWORD
+      })
+      console.log('Updated admin password')
 
-      if (roleData?.role === 'admin') {
-        console.log('Default admin already exists with admin role')
-        return new Response(JSON.stringify({ 
-          message: 'Default admin already exists',
-          email: DEFAULT_ADMIN_EMAIL 
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        })
-      }
-
-      // Update role to admin if not already
+      // Ensure admin role
       await supabaseAdmin
         .from('user_roles')
         .upsert({ user_id: existingAdmin.id, role: 'admin' }, { onConflict: 'user_id' })
 
-      console.log('Updated existing user to admin role')
       return new Response(JSON.stringify({ 
-        message: 'Updated existing user to admin',
+        message: 'Admin password updated',
         email: DEFAULT_ADMIN_EMAIL 
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
