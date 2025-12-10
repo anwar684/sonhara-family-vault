@@ -100,6 +100,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUserRole(null);
     // Sign out from Supabase with global scope to clear all sessions
     await supabase.auth.signOut({ scope: 'global' });
+    // Clear any remaining localStorage session data as fallback
+    localStorage.removeItem('sb-dcakddjwjbbhzfdrkcuz-auth-token');
   };
 
   return (
