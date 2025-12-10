@@ -9,7 +9,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Edit, Trash2, Eye, Phone, Mail } from 'lucide-react';
+import { Edit, Trash2, Eye, Phone, Mail, UserCheck, UserX } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { formatCurrency } from '@/lib/mockData';
 import { cn } from '@/lib/utils';
 
@@ -36,6 +42,7 @@ export function MemberTable({
             <TableHead className="font-semibold">Member</TableHead>
             <TableHead className="font-semibold">Contact</TableHead>
             <TableHead className="font-semibold text-center">Status</TableHead>
+            <TableHead className="font-semibold text-center">Account</TableHead>
             <TableHead className="font-semibold text-right">Takaful</TableHead>
             <TableHead className="font-semibold text-right">Plus</TableHead>
             {showActions && <TableHead className="font-semibold text-right">Actions</TableHead>}
@@ -88,6 +95,26 @@ export function MemberTable({
                 >
                   {member.status}
                 </Badge>
+              </TableCell>
+              <TableCell className="text-center">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      {member.userId ? (
+                        <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-success/10">
+                          <UserCheck className="h-4 w-4 text-success" />
+                        </div>
+                      ) : (
+                        <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-muted">
+                          <UserX className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                      )}
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {member.userId ? 'Account linked - Can login' : 'No account - Add email to enable login'}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </TableCell>
               <TableCell className="text-right">
                 <span className="font-medium text-navy">
