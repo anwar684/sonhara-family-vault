@@ -21,11 +21,12 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { FamilyMember } from '@/types';
-import { Search, Filter, UserPlus, Loader2 } from 'lucide-react';
+import { Search, Filter, UserPlus, Loader2, Upload } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useFamilyMembers, useCreateFamilyMember, useDeleteFamilyMember, FamilyMemberDB } from '@/hooks/useFamilyMembers';
 import { EditMemberDialog } from '@/components/members/EditMemberDialog';
+import { ImportMembersDialog } from '@/components/import/ImportMembersDialog';
 
 export default function Members() {
   const navigate = useNavigate();
@@ -38,6 +39,7 @@ export default function Members() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [selectedMember, setSelectedMember] = useState<FamilyMemberDB | null>(null);
   const [newMember, setNewMember] = useState({
     name: '',
@@ -130,10 +132,16 @@ export default function Members() {
                 Manage {members.length} family members and their contribution settings
               </p>
             </div>
-            <Button variant="gold" onClick={() => setIsAddModalOpen(true)}>
-              <UserPlus className="h-4 w-4 mr-2" />
-              Add Member
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button variant="outline" onClick={() => setIsImportModalOpen(true)}>
+                <Upload className="h-4 w-4 mr-2" />
+                Import
+              </Button>
+              <Button variant="gold" onClick={() => setIsAddModalOpen(true)}>
+                <UserPlus className="h-4 w-4 mr-2" />
+                Add Member
+              </Button>
+            </div>
           </div>
 
           {/* Filters */}
@@ -263,6 +271,12 @@ export default function Members() {
         open={isEditModalOpen} 
         onOpenChange={setIsEditModalOpen} 
         member={selectedMember} 
+      />
+
+      {/* Import Members Modal */}
+      <ImportMembersDialog
+        open={isImportModalOpen}
+        onOpenChange={setIsImportModalOpen}
       />
 
       <Footer />
