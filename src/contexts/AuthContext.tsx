@@ -98,10 +98,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setSession(null);
     setUserRole(null);
-    // Sign out from Supabase with global scope to clear all sessions
+    // Sign out from Supabase
     await supabase.auth.signOut({ scope: 'global' });
-    // Clear any remaining localStorage session data as fallback
-    localStorage.removeItem('sb-dcakddjwjbbhzfdrkcuz-auth-token');
+    // Force page reload to clear all cached client state
+    window.location.href = '/login';
   };
 
   return (
