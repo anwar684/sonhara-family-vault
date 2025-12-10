@@ -1,1 +1,4 @@
 project_id = "dcakddjwjbbhzfdrkcuz"
+
+[functions.generate-pending-payments]
+verify_jwt = false
