@@ -99,6 +99,55 @@ export function useCreateFamilyMember() {
   });
 }
 
+export function useUpdateFamilyMember() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (member: {
+      id: string;
+      name?: string;
+      phone?: string;
+      email?: string;
+      status?: string;
+      takaful_amount?: number;
+      plus_amount?: number;
+      takaful_joined_date?: string;
+      plus_joined_date?: string;
+      takaful_paid_before_entry?: number;
+      takaful_pending_before_entry?: number;
+      plus_paid_before_entry?: number;
+      plus_pending_before_entry?: number;
+    }) => {
+      const { id, ...updates } = member;
+      const { data, error } = await supabase
+        .from('family_members')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['family-members'] });
+      queryClient.invalidateQueries({ queryKey: ['family-member', data.id] });
+      toast({
+        title: 'Member Updated',
+        description: `${data.name}'s details have been updated.`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update member.',
+        variant: 'destructive',
+      });
+    },
+  });
+}
+
 export function useDeleteFamilyMember() {
   const queryClient = useQueryClient();
   const { toast } = useToast();

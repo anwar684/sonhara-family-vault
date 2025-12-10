@@ -1,12 +1,9 @@
 import { useState } from 'react';
-import { format } from 'date-fns';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { MemberTable } from '@/components/dashboard/MemberTable';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { 
   Select,
   SelectContent,
@@ -24,12 +21,11 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { FamilyMember } from '@/types';
-import { Plus, Search, Filter, UserPlus, Loader2, CalendarIcon } from 'lucide-react';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Search, Filter, UserPlus, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
-import { useFamilyMembers, useCreateFamilyMember, useDeleteFamilyMember } from '@/hooks/useFamilyMembers';
-import { cn } from '@/lib/utils';
+import { useFamilyMembers, useCreateFamilyMember, useDeleteFamilyMember, FamilyMemberDB } from '@/hooks/useFamilyMembers';
+import { EditMemberDialog } from '@/components/members/EditMemberDialog';
 
 export default function Members() {
   const navigate = useNavigate();
@@ -41,19 +37,14 @@ export default function Members() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedMember, setSelectedMember] = useState<FamilyMemberDB | null>(null);
   const [newMember, setNewMember] = useState({
     name: '',
     phone: '',
     email: '',
     takafulAmount: '300',
     plusAmount: '1000',
-    takafulJoinedDate: new Date(),
-    plusJoinedDate: new Date(),
-    isOldMember: false,
-    takafulPaidBefore: '',
-    takafulPendingBefore: '',
-    plusPaidBefore: '',
-    plusPendingBefore: '',
   });
 
   // Transform DB data to FamilyMember type
@@ -77,18 +68,6 @@ export default function Members() {
     return matchesSearch && matchesStatus;
   });
 
-  // Calculate months between joining date and now
-  const calculateMonths = (joinedDate: Date) => {
-    const now = new Date();
-    const months = (now.getFullYear() - joinedDate.getFullYear()) * 12 + (now.getMonth() - joinedDate.getMonth());
-    return Math.max(0, months);
-  };
-
-  const takafulMonths = calculateMonths(newMember.takafulJoinedDate);
-  const plusMonths = calculateMonths(newMember.plusJoinedDate);
-  const takafulTotal = takafulMonths * (parseFloat(newMember.takafulAmount) || 0);
-  const plusTotal = plusMonths * (parseFloat(newMember.plusAmount) || 0);
-
   const handleAddMember = async () => {
     if (!newMember.name || !newMember.phone) {
       toast({
@@ -105,22 +84,18 @@ export default function Members() {
       email: newMember.email || undefined,
       takaful_amount: parseFloat(newMember.takafulAmount) || 0,
       plus_amount: parseFloat(newMember.plusAmount) || 0,
-      initial_contribution: 0,
-      joined_date: format(newMember.takafulJoinedDate, 'yyyy-MM-dd'),
-      takaful_joined_date: format(newMember.takafulJoinedDate, 'yyyy-MM-dd'),
-      plus_joined_date: format(newMember.plusJoinedDate, 'yyyy-MM-dd'),
-      takaful_paid_before_entry: newMember.isOldMember ? parseFloat(newMember.takafulPaidBefore) || 0 : 0,
-      takaful_pending_before_entry: newMember.isOldMember ? parseFloat(newMember.takafulPendingBefore) || 0 : 0,
-      plus_paid_before_entry: newMember.isOldMember ? parseFloat(newMember.plusPaidBefore) || 0 : 0,
-      plus_pending_before_entry: newMember.isOldMember ? parseFloat(newMember.plusPendingBefore) || 0 : 0,
     });
 
     setIsAddModalOpen(false);
-    setNewMember({ 
-      name: '', phone: '', email: '', takafulAmount: '300', plusAmount: '1000', 
-      takafulJoinedDate: new Date(), plusJoinedDate: new Date(),
-      isOldMember: false, takafulPaidBefore: '', takafulPendingBefore: '', plusPaidBefore: '', plusPendingBefore: ''
-    });
+    setNewMember({ name: '', phone: '', email: '', takafulAmount: '300', plusAmount: '1000' });
+  };
+
+  const handleEditMember = (member: FamilyMember) => {
+    const dbMember = membersData?.find(m => m.id === member.id);
+    if (dbMember) {
+      setSelectedMember(dbMember);
+      setIsEditModalOpen(true);
+    }
   };
 
   const handleDeleteMember = (member: FamilyMember) => {
@@ -190,7 +165,7 @@ export default function Members() {
             <MemberTable
               members={filteredMembers}
               onView={(m) => navigate(`/members/${m.id}`)}
-              onEdit={(m) => toast({ title: 'Edit', description: `Edit ${m.name}` })}
+              onEdit={handleEditMember}
               onDelete={handleDeleteMember}
             />
           ) : (
@@ -210,13 +185,13 @@ export default function Members() {
         </div>
       </main>
 
-      {/* Add Member Modal */}
+      {/* Add Member Modal - Simplified */}
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle className="font-serif text-xl">Add New Member</DialogTitle>
             <DialogDescription>
-              Add a new family member to the contribution system.
+              Add a new family member. You can add more details by editing after creation.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -248,179 +223,47 @@ export default function Members() {
                 placeholder="email@example.com"
               />
             </div>
-            {/* Takaful Section */}
-            <div className="space-y-3 p-4 bg-muted/50 rounded-lg">
-              <h4 className="font-medium text-sm text-navy">Sonhara Takaful</h4>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="takaful">Monthly Amount (PKR)</Label>
-                  <Input
-                    id="takaful"
-                    type="number"
-                    value={newMember.takafulAmount}
-                    onChange={(e) => setNewMember({ ...newMember, takafulAmount: e.target.value })}
-                    placeholder="300"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label>Joining Date</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !newMember.takafulJoinedDate && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {newMember.takafulJoinedDate ? format(newMember.takafulJoinedDate, "PPP") : <span>Pick a date</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={newMember.takafulJoinedDate}
-                        onSelect={(date) => date && setNewMember({ ...newMember, takafulJoinedDate: date })}
-                        disabled={(date) => date > new Date()}
-                        initialFocus
-                        className={cn("p-3 pointer-events-auto")}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="takaful">Takaful Monthly (PKR)</Label>
+                <Input
+                  id="takaful"
+                  type="number"
+                  value={newMember.takafulAmount}
+                  onChange={(e) => setNewMember({ ...newMember, takafulAmount: e.target.value })}
+                  placeholder="300"
+                />
               </div>
-              <p className="text-xs text-muted-foreground">
-                Total Payable: <span className="font-semibold text-foreground">{takafulMonths} months × PKR {parseFloat(newMember.takafulAmount) || 0} = PKR {takafulTotal.toLocaleString()}</span>
-              </p>
-            </div>
-
-            {/* Plus Section */}
-            <div className="space-y-3 p-4 bg-muted/50 rounded-lg">
-              <h4 className="font-medium text-sm text-navy">Sonhara Plus</h4>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="plus">Monthly Amount (PKR)</Label>
-                  <Input
-                    id="plus"
-                    type="number"
-                    value={newMember.plusAmount}
-                    onChange={(e) => setNewMember({ ...newMember, plusAmount: e.target.value })}
-                    placeholder="1000"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label>Joining Date</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !newMember.plusJoinedDate && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {newMember.plusJoinedDate ? format(newMember.plusJoinedDate, "PPP") : <span>Pick a date</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={newMember.plusJoinedDate}
-                        onSelect={(date) => date && setNewMember({ ...newMember, plusJoinedDate: date })}
-                        disabled={(date) => date > new Date()}
-                        initialFocus
-                        className={cn("p-3 pointer-events-auto")}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
+              <div className="grid gap-2">
+                <Label htmlFor="plus">Plus Monthly (PKR)</Label>
+                <Input
+                  id="plus"
+                  type="number"
+                  value={newMember.plusAmount}
+                  onChange={(e) => setNewMember({ ...newMember, plusAmount: e.target.value })}
+                  placeholder="1000"
+                />
               </div>
-              <p className="text-xs text-muted-foreground">
-                Total Payable: <span className="font-semibold text-foreground">{plusMonths} months × PKR {parseFloat(newMember.plusAmount) || 0} = PKR {plusTotal.toLocaleString()}</span>
-              </p>
             </div>
-
-            {/* Old Member Option */}
-            <div className="flex items-center space-x-2 p-4 bg-muted/30 rounded-lg border">
-              <Checkbox 
-                id="isOldMember" 
-                checked={newMember.isOldMember}
-                onCheckedChange={(checked) => setNewMember({ ...newMember, isOldMember: !!checked })}
-              />
-              <Label htmlFor="isOldMember" className="text-sm font-medium cursor-pointer">
-                This is an existing member (add historical contribution data)
-              </Label>
-            </div>
-
-            {newMember.isOldMember && (
-              <div className="space-y-4 p-4 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800">
-                <h4 className="font-medium text-sm text-amber-800 dark:text-amber-200">Historical Contribution Data (before system entry)</h4>
-                
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-3">
-                    <p className="text-xs font-medium text-navy">Takaful History</p>
-                    <div className="grid gap-2">
-                      <Label htmlFor="takafulPaidBefore" className="text-xs">Total Paid (PKR)</Label>
-                      <Input
-                        id="takafulPaidBefore"
-                        type="number"
-                        value={newMember.takafulPaidBefore}
-                        onChange={(e) => setNewMember({ ...newMember, takafulPaidBefore: e.target.value })}
-                        placeholder="0"
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="takafulPendingBefore" className="text-xs">Total Pending (PKR)</Label>
-                      <Input
-                        id="takafulPendingBefore"
-                        type="number"
-                        value={newMember.takafulPendingBefore}
-                        onChange={(e) => setNewMember({ ...newMember, takafulPendingBefore: e.target.value })}
-                        placeholder="0"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <p className="text-xs font-medium text-gold-dark">Plus History</p>
-                    <div className="grid gap-2">
-                      <Label htmlFor="plusPaidBefore" className="text-xs">Total Paid (PKR)</Label>
-                      <Input
-                        id="plusPaidBefore"
-                        type="number"
-                        value={newMember.plusPaidBefore}
-                        onChange={(e) => setNewMember({ ...newMember, plusPaidBefore: e.target.value })}
-                        placeholder="0"
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="plusPendingBefore" className="text-xs">Total Pending (PKR)</Label>
-                      <Input
-                        id="plusPendingBefore"
-                        type="number"
-                        value={newMember.plusPendingBefore}
-                        onChange={(e) => setNewMember({ ...newMember, plusPendingBefore: e.target.value })}
-                        placeholder="0"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddModalOpen(false)}>
               Cancel
             </Button>
             <Button variant="gold" onClick={handleAddMember} disabled={createMember.isPending}>
-              {createMember.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
-              {createMember.isPending ? 'Adding...' : 'Add Member'}
+              {createMember.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Add Member
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Member Modal */}
+      <EditMemberDialog 
+        open={isEditModalOpen} 
+        onOpenChange={setIsEditModalOpen} 
+        member={selectedMember} 
+      />
 
       <Footer />
     </div>
