@@ -23,12 +23,13 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatCurrency } from '@/lib/mockData';
 import { Payment, FundType } from '@/types';
-import { Plus, Search, Download, CreditCard, Loader2, AlertCircle } from 'lucide-react';
+import { Plus, Search, Download, CreditCard, Loader2, AlertCircle, Upload } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useFamilyMembers } from '@/hooks/useFamilyMembers';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { ImportPaymentsDialog } from '@/components/import/ImportPaymentsDialog';
 
 export default function Payments() {
   const navigate = useNavigate();
@@ -170,6 +171,7 @@ export default function Payments() {
   const [fundFilter, setFundFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [newPayment, setNewPayment] = useState({
     memberId: '',
     fundType: 'takaful' as FundType,
@@ -271,6 +273,10 @@ export default function Payments() {
               <Button variant="outline">
                 <Download className="h-4 w-4 mr-2" />
                 Export
+              </Button>
+              <Button variant="outline" onClick={() => setIsImportModalOpen(true)}>
+                <Upload className="h-4 w-4 mr-2" />
+                Import
               </Button>
               <Button 
                 variant="outline" 
@@ -422,6 +428,12 @@ export default function Payments() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Import Payments Modal */}
+      <ImportPaymentsDialog
+        open={isImportModalOpen}
+        onOpenChange={setIsImportModalOpen}
+      />
 
       <Footer />
     </div>
