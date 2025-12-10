@@ -14,6 +14,10 @@ export interface FamilyMemberDB {
   joined_date: string;
   takaful_joined_date: string | null;
   plus_joined_date: string | null;
+  takaful_paid_before_entry: number | null;
+  takaful_pending_before_entry: number | null;
+  plus_paid_before_entry: number | null;
+  plus_pending_before_entry: number | null;
   avatar_url: string | null;
   user_id: string | null;
   created_at: string;
@@ -50,6 +54,10 @@ export function useCreateFamilyMember() {
       joined_date?: string;
       takaful_joined_date?: string;
       plus_joined_date?: string;
+      takaful_paid_before_entry?: number;
+      takaful_pending_before_entry?: number;
+      plus_paid_before_entry?: number;
+      plus_pending_before_entry?: number;
     }) => {
       const { data, error } = await supabase
         .from('family_members')
@@ -63,6 +71,10 @@ export function useCreateFamilyMember() {
           joined_date: member.joined_date || new Date().toISOString().split('T')[0],
           takaful_joined_date: member.takaful_joined_date || member.joined_date || new Date().toISOString().split('T')[0],
           plus_joined_date: member.plus_joined_date || member.joined_date || new Date().toISOString().split('T')[0],
+          takaful_paid_before_entry: member.takaful_paid_before_entry || 0,
+          takaful_pending_before_entry: member.takaful_pending_before_entry || 0,
+          plus_paid_before_entry: member.plus_paid_before_entry || 0,
+          plus_pending_before_entry: member.plus_pending_before_entry || 0,
         })
         .select()
         .single();

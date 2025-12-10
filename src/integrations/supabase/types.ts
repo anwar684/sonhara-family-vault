@@ -179,9 +179,13 @@ export type Database = {
           phone: string
           plus_amount: number
           plus_joined_date: string | null
+          plus_paid_before_entry: number | null
+          plus_pending_before_entry: number | null
           status: string
           takaful_amount: number
           takaful_joined_date: string | null
+          takaful_paid_before_entry: number | null
+          takaful_pending_before_entry: number | null
           updated_at: string
           user_id: string | null
         }
@@ -196,9 +200,13 @@ export type Database = {
           phone: string
           plus_amount?: number
           plus_joined_date?: string | null
+          plus_paid_before_entry?: number | null
+          plus_pending_before_entry?: number | null
           status?: string
           takaful_amount?: number
           takaful_joined_date?: string | null
+          takaful_paid_before_entry?: number | null
+          takaful_pending_before_entry?: number | null
           updated_at?: string
           user_id?: string | null
         }
@@ -213,9 +221,13 @@ export type Database = {
           phone?: string
           plus_amount?: number
           plus_joined_date?: string | null
+          plus_paid_before_entry?: number | null
+          plus_pending_before_entry?: number | null
           status?: string
           takaful_amount?: number
           takaful_joined_date?: string | null
+          takaful_paid_before_entry?: number | null
+          takaful_pending_before_entry?: number | null
           updated_at?: string
           user_id?: string | null
         }
