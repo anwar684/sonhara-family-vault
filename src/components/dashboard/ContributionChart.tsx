@@ -1,13 +1,18 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { MonthlyContribution } from '@/types';
-import { formatMonth } from '@/lib/mockData';
+import { formatMonth } from '@/hooks/useDashboardStats';
 
-interface ContributionChartProps {
-  takafulData: MonthlyContribution[];
-  plusData: MonthlyContribution[];
+interface MonthlyData {
+  month: string;
+  totalPaid: number;
+  totalPending: number;
 }
 
-export function ContributionChart({ takafulData, plusData }: ContributionChartProps) {
+interface ContributionChartProps {
+  takafulData?: MonthlyData[];
+  plusData?: MonthlyData[];
+}
+
+export function ContributionChart({ takafulData = [], plusData = [] }: ContributionChartProps) {
   const chartData = takafulData.map((t, index) => ({
     month: formatMonth(t.month).split(' ')[0],
     'Takaful Collected': t.totalPaid,
@@ -15,6 +20,14 @@ export function ContributionChart({ takafulData, plusData }: ContributionChartPr
     'Plus Collected': plusData[index]?.totalPaid || 0,
     'Plus Pending': plusData[index]?.totalPending || 0,
   }));
+
+  if (chartData.length === 0) {
+    return (
+      <div className="h-[350px] w-full flex items-center justify-center text-muted-foreground">
+        No payment data available yet
+      </div>
+    );
+  }
 
   return (
     <div className="h-[350px] w-full">
