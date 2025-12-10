@@ -60,6 +60,7 @@ export default function Members() {
     plusAmount: m.plus_amount,
     joinedDate: m.joined_date,
     avatarUrl: m.avatar_url || undefined,
+    userId: m.user_id || undefined,
   }));
 
   const filteredMembers = members.filter((member) => {
