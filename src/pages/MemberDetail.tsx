@@ -5,7 +5,6 @@ import { Footer } from '@/components/layout/Footer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import {
   Table,
   TableBody,
@@ -14,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { ArrowLeft, User, Phone, Mail, Calendar, Wallet, Loader2, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Phone, Mail, Calendar, Wallet, Loader2, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/lib/mockData';
@@ -87,27 +86,19 @@ export default function MemberDetail() {
     );
   }
 
-  // Calculate totals
-  const totalPaid = payments?.reduce((sum, p) => sum + (p.status === 'paid' ? p.amount : 0), 0) || 0;
-  const totalPending = payments?.reduce((sum, p) => sum + (p.status === 'pending' ? p.due_amount - p.amount : 0), 0) || 0;
-  const totalContribution = (member.initial_contribution || 0) + totalPaid;
-
-  // Group payments by fund type
+  // Calculate totals for Takaful
   const takafulPayments = payments?.filter(p => p.fund_type === 'takaful') || [];
-  const plusPayments = payments?.filter(p => p.fund_type === 'plus') || [];
+  const takafulPaid = takafulPayments.reduce((sum, p) => sum + (p.status === 'paid' ? p.amount : 0), 0);
+  const takafulPending = takafulPayments.reduce((sum, p) => sum + (p.status === 'pending' ? p.due_amount - p.amount : 0), 0);
+  const takafulTotalPaid = (member.takaful_paid_before_entry || 0) + takafulPaid;
+  const takafulTotalPending = (member.takaful_pending_before_entry || 0) + takafulPending;
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'paid':
-        return <CheckCircle className="h-4 w-4 text-success" />;
-      case 'pending':
-        return <Clock className="h-4 w-4 text-warning" />;
-      case 'overdue':
-        return <AlertCircle className="h-4 w-4 text-destructive" />;
-      default:
-        return null;
-    }
-  };
+  // Calculate totals for Plus
+  const plusPayments = payments?.filter(p => p.fund_type === 'plus') || [];
+  const plusPaid = plusPayments.reduce((sum, p) => sum + (p.status === 'paid' ? p.amount : 0), 0);
+  const plusPending = plusPayments.reduce((sum, p) => sum + (p.status === 'pending' ? p.due_amount - p.amount : 0), 0);
+  const plusTotalPaid = (member.plus_paid_before_entry || 0) + plusPaid;
+  const plusTotalPending = (member.plus_pending_before_entry || 0) + plusPending;
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, string> = {
@@ -158,21 +149,7 @@ export default function MemberDetail() {
           </div>
 
           {/* Member Info Cards */}
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-primary/10">
-                    <Phone className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Phone</p>
-                    <p className="font-medium">{member.phone}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
+          <div className="grid gap-6 md:grid-cols-3 mb-8">
             <Card>
               <CardContent className="pt-6">
                 <div className="flex items-center gap-3">
@@ -182,6 +159,20 @@ export default function MemberDetail() {
                   <div>
                     <p className="text-sm text-muted-foreground">Email</p>
                     <p className="font-medium">{member.email || 'Not provided'}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <Phone className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Phone</p>
+                    <p className="font-medium">{member.phone}</p>
                   </div>
                 </div>
               </CardContent>
@@ -202,71 +193,47 @@ export default function MemberDetail() {
                 </div>
               </CardContent>
             </Card>
+          </div>
 
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-gold/10">
-                    <Wallet className="h-5 w-5 text-gold-dark" />
+          {/* Fund Summary Cards */}
+          <div className="grid gap-6 md:grid-cols-2 mb-8">
+            {/* Takaful Summary */}
+            <Card className="border-navy/20">
+              <CardHeader>
+                <CardTitle className="text-navy">Sonhara Takaful</CardTitle>
+                <CardDescription>Monthly contribution: {formatCurrency(member.takaful_amount)}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 rounded-lg bg-success/10">
+                    <p className="text-sm text-muted-foreground mb-1">Total Paid</p>
+                    <p className="text-2xl font-bold text-success">{formatCurrency(takafulTotalPaid)}</p>
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Total Contribution</p>
-                    <p className="font-bold text-gold-dark">{formatCurrency(totalContribution)}</p>
+                  <div className="p-4 rounded-lg bg-warning/10">
+                    <p className="text-sm text-muted-foreground mb-1">Pending</p>
+                    <p className="text-2xl font-bold text-warning">{formatCurrency(takafulTotalPending)}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
-          </div>
 
-          {/* Contribution Summary */}
-          <div className="grid gap-6 md:grid-cols-3 mb-8">
-            <Card className="bg-gradient-to-br from-navy/5 to-navy/10 border-navy/20">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Initial Contribution</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold text-navy">{formatCurrency(member.initial_contribution || 0)}</p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gradient-to-br from-success/5 to-success/10 border-success/20">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Total Paid</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold text-success">{formatCurrency(totalPaid)}</p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gradient-to-br from-warning/5 to-warning/10 border-warning/20">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Pending Balance</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold text-warning">{formatCurrency(totalPending)}</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Monthly Amounts */}
-          <div className="grid gap-6 md:grid-cols-2 mb-8">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-navy">Sonhara Takaful</CardTitle>
-                <CardDescription>Monthly contribution amount</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold text-navy">{formatCurrency(member.takaful_amount)}<span className="text-sm font-normal text-muted-foreground">/month</span></p>
-              </CardContent>
-            </Card>
-
-            <Card>
+            {/* Plus Summary */}
+            <Card className="border-gold/20">
               <CardHeader>
                 <CardTitle className="text-gold-dark">Sonhara Plus</CardTitle>
-                <CardDescription>Monthly investment amount</CardDescription>
+                <CardDescription>Monthly investment: {formatCurrency(member.plus_amount)}</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-3xl font-bold text-gold-dark">{formatCurrency(member.plus_amount)}<span className="text-sm font-normal text-muted-foreground">/month</span></p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 rounded-lg bg-success/10">
+                    <p className="text-sm text-muted-foreground mb-1">Total Paid</p>
+                    <p className="text-2xl font-bold text-success">{formatCurrency(plusTotalPaid)}</p>
+                  </div>
+                  <div className="p-4 rounded-lg bg-warning/10">
+                    <p className="text-sm text-muted-foreground mb-1">Pending</p>
+                    <p className="text-2xl font-bold text-warning">{formatCurrency(plusTotalPending)}</p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>

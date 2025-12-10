@@ -25,6 +25,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { FamilyMember } from '@/types';
 import { Plus, Search, Filter, UserPlus, Loader2, CalendarIcon } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useFamilyMembers, useCreateFamilyMember, useDeleteFamilyMember } from '@/hooks/useFamilyMembers';
@@ -48,6 +49,11 @@ export default function Members() {
     plusAmount: '1000',
     takafulJoinedDate: new Date(),
     plusJoinedDate: new Date(),
+    isOldMember: false,
+    takafulPaidBefore: '',
+    takafulPendingBefore: '',
+    plusPaidBefore: '',
+    plusPendingBefore: '',
   });
 
   // Transform DB data to FamilyMember type
@@ -103,10 +109,18 @@ export default function Members() {
       joined_date: format(newMember.takafulJoinedDate, 'yyyy-MM-dd'),
       takaful_joined_date: format(newMember.takafulJoinedDate, 'yyyy-MM-dd'),
       plus_joined_date: format(newMember.plusJoinedDate, 'yyyy-MM-dd'),
+      takaful_paid_before_entry: newMember.isOldMember ? parseFloat(newMember.takafulPaidBefore) || 0 : 0,
+      takaful_pending_before_entry: newMember.isOldMember ? parseFloat(newMember.takafulPendingBefore) || 0 : 0,
+      plus_paid_before_entry: newMember.isOldMember ? parseFloat(newMember.plusPaidBefore) || 0 : 0,
+      plus_pending_before_entry: newMember.isOldMember ? parseFloat(newMember.plusPendingBefore) || 0 : 0,
     });
 
     setIsAddModalOpen(false);
-    setNewMember({ name: '', phone: '', email: '', takafulAmount: '300', plusAmount: '1000', takafulJoinedDate: new Date(), plusJoinedDate: new Date() });
+    setNewMember({ 
+      name: '', phone: '', email: '', takafulAmount: '300', plusAmount: '1000', 
+      takafulJoinedDate: new Date(), plusJoinedDate: new Date(),
+      isOldMember: false, takafulPaidBefore: '', takafulPendingBefore: '', plusPaidBefore: '', plusPendingBefore: ''
+    });
   };
 
   const handleDeleteMember = (member: FamilyMember) => {
@@ -327,6 +341,74 @@ export default function Members() {
                 Total Payable: <span className="font-semibold text-foreground">{plusMonths} months × PKR {parseFloat(newMember.plusAmount) || 0} = PKR {plusTotal.toLocaleString()}</span>
               </p>
             </div>
+
+            {/* Old Member Option */}
+            <div className="flex items-center space-x-2 p-4 bg-muted/30 rounded-lg border">
+              <Checkbox 
+                id="isOldMember" 
+                checked={newMember.isOldMember}
+                onCheckedChange={(checked) => setNewMember({ ...newMember, isOldMember: !!checked })}
+              />
+              <Label htmlFor="isOldMember" className="text-sm font-medium cursor-pointer">
+                This is an existing member (add historical contribution data)
+              </Label>
+            </div>
+
+            {newMember.isOldMember && (
+              <div className="space-y-4 p-4 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                <h4 className="font-medium text-sm text-amber-800 dark:text-amber-200">Historical Contribution Data (before system entry)</h4>
+                
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-3">
+                    <p className="text-xs font-medium text-navy">Takaful History</p>
+                    <div className="grid gap-2">
+                      <Label htmlFor="takafulPaidBefore" className="text-xs">Total Paid (PKR)</Label>
+                      <Input
+                        id="takafulPaidBefore"
+                        type="number"
+                        value={newMember.takafulPaidBefore}
+                        onChange={(e) => setNewMember({ ...newMember, takafulPaidBefore: e.target.value })}
+                        placeholder="0"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="takafulPendingBefore" className="text-xs">Total Pending (PKR)</Label>
+                      <Input
+                        id="takafulPendingBefore"
+                        type="number"
+                        value={newMember.takafulPendingBefore}
+                        onChange={(e) => setNewMember({ ...newMember, takafulPendingBefore: e.target.value })}
+                        placeholder="0"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <p className="text-xs font-medium text-gold-dark">Plus History</p>
+                    <div className="grid gap-2">
+                      <Label htmlFor="plusPaidBefore" className="text-xs">Total Paid (PKR)</Label>
+                      <Input
+                        id="plusPaidBefore"
+                        type="number"
+                        value={newMember.plusPaidBefore}
+                        onChange={(e) => setNewMember({ ...newMember, plusPaidBefore: e.target.value })}
+                        placeholder="0"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="plusPendingBefore" className="text-xs">Total Pending (PKR)</Label>
+                      <Input
+                        id="plusPendingBefore"
+                        type="number"
+                        value={newMember.plusPendingBefore}
+                        onChange={(e) => setNewMember({ ...newMember, plusPendingBefore: e.target.value })}
+                        placeholder="0"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddModalOpen(false)}>
