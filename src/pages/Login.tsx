@@ -4,18 +4,20 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Eye, EyeOff, Mail, Lock, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, ArrowLeft, User } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function Login() {
+  const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { signIn, user, userRole, isLoading: authLoading } = useAuth();
+  const { signIn, signUp, user, userRole, isLoading: authLoading } = useAuth();
 
   // Redirect if already logged in (only after auth state is loaded)
   useEffect(() => {
@@ -28,23 +30,52 @@ export default function Login() {
     }
   }, [user, userRole, authLoading, navigate]);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    const { error } = await signIn(email, password);
-    
-    if (error) {
-      toast({
-        title: 'Error',
-        description: error.message,
-        variant: 'destructive',
-      });
+    if (isSignUp) {
+      if (!fullName.trim()) {
+        toast({
+          title: 'Error',
+          description: 'Please enter your full name',
+          variant: 'destructive',
+        });
+        setIsLoading(false);
+        return;
+      }
+      
+      const { error } = await signUp(email, password, fullName);
+      
+      if (error) {
+        toast({
+          title: 'Error',
+          description: error.message,
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Account created!',
+          description: 'You can now sign in with your credentials.',
+        });
+        setIsSignUp(false);
+        setFullName('');
+      }
     } else {
-      toast({
-        title: 'Welcome back!',
-        description: 'You have been logged in successfully.',
-      });
+      const { error } = await signIn(email, password);
+      
+      if (error) {
+        toast({
+          title: 'Error',
+          description: error.message,
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Welcome back!',
+          description: 'You have been logged in successfully.',
+        });
+      }
     }
     
     setIsLoading(false);
@@ -76,13 +107,35 @@ export default function Login() {
           </div>
 
           <div className="mb-6">
-            <h2 className="font-serif text-3xl font-bold text-navy mb-2">Welcome Back</h2>
+            <h2 className="font-serif text-3xl font-bold text-navy mb-2">
+              {isSignUp ? 'Create Account' : 'Welcome Back'}
+            </h2>
             <p className="text-muted-foreground">
-              Sign in with the credentials provided by your administrator.
+              {isSignUp 
+                ? 'Sign up to join the Sonhara family portal.' 
+                : 'Sign in with the credentials provided by your administrator.'}
             </p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {isSignUp && (
+              <div className="space-y-2">
+                <Label htmlFor="full-name">Full Name</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Input
+                    id="full-name"
+                    type="text"
+                    placeholder="Enter your full name"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    className="pl-10 h-12"
+                    required
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="login-email">Email Address</Label>
               <div className="relative">
@@ -111,6 +164,7 @@ export default function Login() {
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-10 pr-10 h-12"
                   required
+                  minLength={6}
                 />
                 <button
                   type="button"
@@ -128,12 +182,36 @@ export default function Login() {
               className="w-full h-12"
               disabled={isLoading}
             >
-              {isLoading ? 'Signing in...' : 'Sign In'}
+              {isLoading 
+                ? (isSignUp ? 'Creating account...' : 'Signing in...') 
+                : (isSignUp ? 'Create Account' : 'Sign In')}
             </Button>
           </form>
 
           <p className="mt-6 text-sm text-center text-muted-foreground">
-            Don't have credentials? Contact your family administrator.
+            {isSignUp ? (
+              <>
+                Already have an account?{' '}
+                <button
+                  type="button"
+                  onClick={() => setIsSignUp(false)}
+                  className="text-navy font-medium hover:underline"
+                >
+                  Sign in
+                </button>
+              </>
+            ) : (
+              <>
+                Don't have an account?{' '}
+                <button
+                  type="button"
+                  onClick={() => setIsSignUp(true)}
+                  className="text-navy font-medium hover:underline"
+                >
+                  Sign up
+                </button>
+              </>
+            )}
           </p>
         </div>
       </div>
