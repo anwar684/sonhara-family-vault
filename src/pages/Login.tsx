@@ -19,9 +19,10 @@ export default function Login() {
   const { toast } = useToast();
   const { signIn, signUp, user, userRole, isLoading: authLoading } = useAuth();
 
-  // Redirect if already logged in (only after auth state is loaded)
+  // Redirect if already logged in (only after auth state is fully loaded)
   useEffect(() => {
-    if (!authLoading && user) {
+    // Wait until auth is not loading and we have a confirmed user session
+    if (!authLoading && user && userRole) {
       if (userRole === 'admin') {
         navigate('/dashboard');
       } else {
