@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { StatCard } from '@/components/dashboard/StatCard';
@@ -27,11 +27,24 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { FamilyMember } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const { user, userRole, isLoading: authLoading } = useAuth();
+
+  // Redirect non-admins to their appropriate dashboard
+  useEffect(() => {
+    if (!authLoading) {
+      if (!user) {
+        navigate('/login');
+      } else if (userRole !== 'admin') {
+        navigate('/my-dashboard');
+      }
+    }
+  }, [user, userRole, authLoading, navigate]);
   
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
   const { data: takafulContributions } = useMonthlyContributions('takaful');

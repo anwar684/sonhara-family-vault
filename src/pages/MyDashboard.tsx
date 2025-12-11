@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { StatCard } from '@/components/dashboard/StatCard';
@@ -24,7 +25,18 @@ const formatMonth = (monthStr: string) => {
 
 export default function MyDashboard() {
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
+  const { user, userRole, isLoading: authLoading, signOut } = useAuth();
+
+  // Redirect admins to admin dashboard, unauthenticated to login
+  useEffect(() => {
+    if (!authLoading) {
+      if (!user) {
+        navigate('/login');
+      } else if (userRole === 'admin') {
+        navigate('/dashboard');
+      }
+    }
+  }, [user, userRole, authLoading, navigate]);
 
   // Fetch the family member linked to this user
   const { data: member, isLoading: memberLoading } = useQuery({
