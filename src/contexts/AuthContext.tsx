@@ -94,7 +94,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    // Clear local state first
+    // Set logout flag to prevent auto-redirect on login page
+    sessionStorage.setItem('just_logged_out', 'true');
+    
+    // Sign out from Supabase first
+    await supabase.auth.signOut({ scope: 'global' });
+    
+    // Clear local state
     setUser(null);
     setSession(null);
     setUserRole(null);
@@ -104,9 +110,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       key.startsWith('sb-') || key.includes('supabase')
     );
     keysToRemove.forEach(key => localStorage.removeItem(key));
-    
-    // Sign out from Supabase
-    await supabase.auth.signOut({ scope: 'global' });
     
     // Hard refresh to clear all cached state
     window.location.replace('/login');

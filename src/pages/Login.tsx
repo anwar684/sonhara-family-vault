@@ -21,6 +21,13 @@ export default function Login() {
 
   // Redirect if already logged in (only after auth state is fully loaded)
   useEffect(() => {
+    // Check if user just logged out - don't auto-redirect
+    const justLoggedOut = sessionStorage.getItem('just_logged_out');
+    if (justLoggedOut) {
+      sessionStorage.removeItem('just_logged_out');
+      return;
+    }
+    
     // Wait until auth is not loading and we have a confirmed user session
     if (!authLoading && user && userRole) {
       if (userRole === 'admin') {
