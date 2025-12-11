@@ -14,29 +14,22 @@ export default function Login() {
   const [fullName, setFullName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [loginSuccess, setLoginSuccess] = useState(false);
   
   const navigate = useNavigate();
   const { toast } = useToast();
   const { signIn, signUp, user, userRole, isLoading: authLoading } = useAuth();
 
-  // Redirect if already logged in (only after auth state is fully loaded)
+  // Redirect after successful login when userRole is available
   useEffect(() => {
-    // Check if user just logged out - don't auto-redirect
-    const justLoggedOut = sessionStorage.getItem('just_logged_out');
-    if (justLoggedOut) {
-      sessionStorage.removeItem('just_logged_out');
-      return;
-    }
-    
-    // Wait until auth is not loading and we have a confirmed user session
-    if (!authLoading && user && userRole) {
+    if (loginSuccess && user && userRole) {
       if (userRole === 'admin') {
         navigate('/dashboard');
       } else {
         navigate('/my-dashboard');
       }
     }
-  }, [user, userRole, authLoading, navigate]);
+  }, [loginSuccess, user, userRole, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,12 +71,17 @@ export default function Login() {
           description: error.message,
           variant: 'destructive',
         });
-      } else {
-        toast({
-          title: 'Welcome back!',
-          description: 'You have been logged in successfully.',
-        });
+        setIsLoading(false);
+        return;
       }
+      
+      toast({
+        title: 'Welcome back!',
+        description: 'You have been logged in successfully.',
+      });
+      
+      // Set flag to trigger redirect when userRole is available
+      setLoginSuccess(true);
     }
     
     setIsLoading(false);
