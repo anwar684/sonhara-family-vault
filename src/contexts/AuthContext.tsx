@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { recordLoginActivity } from '@/hooks/useLoginActivity';
 
 type AppRole = 'admin' | 'member';
 
@@ -70,10 +71,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
+    
+    // Record login activity on successful login
+    if (!error && data.user) {
+      recordLoginActivity(data.user.id, email);
+    }
+    
     return { error };
   };
 

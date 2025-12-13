@@ -6,6 +6,7 @@ import { FundCard } from '@/components/dashboard/FundCard';
 import { MemberTable } from '@/components/dashboard/MemberTable';
 import { ContributionChart } from '@/components/dashboard/ContributionChart';
 import { PaymentHistory } from '@/components/dashboard/PaymentHistory';
+import { LoginActivityCard } from '@/components/dashboard/LoginActivityCard';
 import { Button } from '@/components/ui/button';
 import { 
   useDashboardStats, 
@@ -216,19 +217,22 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Member Table */}
-          <div className="bg-card rounded-xl border border-border p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-serif text-xl font-bold">Family Members</h2>
-              <Link to="/members" className="text-sm text-gold hover:underline">
-                Manage All
-              </Link>
+          {/* Member Table and Login Activity */}
+          <div className="grid lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 bg-card rounded-xl border border-border p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-serif text-xl font-bold">Family Members</h2>
+                <Link to="/members" className="text-sm text-gold hover:underline">
+                  Manage All
+                </Link>
+              </div>
+              <MemberTable
+                members={members}
+                onView={(m) => navigate(`/members/${m.id}`)}
+                onEdit={(m) => navigate(`/members/${m.id}/edit`)}
+              />
             </div>
-            <MemberTable
-              members={members}
-              onView={(m) => navigate(`/members/${m.id}`)}
-              onEdit={(m) => navigate(`/members/${m.id}/edit`)}
-            />
+            <LoginActivityCard />
           </div>
         </div>
       </main>
