@@ -13,6 +13,7 @@ import Payments from "./pages/Payments";
 import Beneficiaries from "./pages/Beneficiaries";
 import MyDashboard from "./pages/MyDashboard";
 import Reports from "./pages/Reports";
+import FundDetail from "./pages/FundDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -35,6 +36,7 @@ const App = () => (
             <Route path="/reports" element={<Reports />} />
             <Route path="/my-dashboard" element={<MyDashboard />} />
             <Route path="/my-payments" element={<MyDashboard />} />
+            <Route path="/:fundType" element={<FundDetail />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
