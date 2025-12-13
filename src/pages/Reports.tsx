@@ -21,89 +21,184 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { useReportStats, useMonthlyPaymentTrends } from '@/hooks/useReportsData';
 import {
-  usePendingBalances,
-  useReportStats,
-  useMonthlyPaymentTrends,
-} from '@/hooks/useReportsData';
+  useTakafulPendingReport,
+  usePlusPendingReport,
+  useMemberContributions,
+} from '@/hooks/useMemberContributions';
 import { useMonthlyContributions, formatCurrency, formatMonth } from '@/hooks/useDashboardStats';
+import { exportMonthlyTrendsToExcel, exportFullReportToExcel } from '@/lib/exportReports';
 import {
-  exportPendingBalancesToExcel,
-  exportMonthlyTrendsToExcel,
-  exportFullReportToExcel,
-} from '@/lib/exportReports';
+  exportTakafulPendingToPdf,
+  exportPlusPendingToPdf,
+  exportMemberContributionsToPdf,
+} from '@/lib/exportPdf';
 import {
   Download,
   FileSpreadsheet,
+  FileText,
   TrendingUp,
   TrendingDown,
   Wallet,
   Users,
   Calendar,
-  PieChart,
   Loader2,
   Phone,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { PieChart as RechartsPie, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+import * as XLSX from 'xlsx';
 
 export default function Reports() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const currentYear = new Date().getFullYear().toString();
   const [selectedYear, setSelectedYear] = useState(currentYear);
-  const [pendingFilter, setPendingFilter] = useState<'all' | 'takaful' | 'plus'>('all');
 
   // Fetch real data
   const { data: stats, isLoading: statsLoading } = useReportStats();
-  const { data: pendingBalances, isLoading: pendingLoading } = usePendingBalances(
-    pendingFilter === 'all' ? undefined : pendingFilter
-  );
+  const { data: takafulPending, isLoading: takafulLoading } = useTakafulPendingReport();
+  const { data: plusPending, isLoading: plusLoading } = usePlusPendingReport();
+  const { data: memberContributions, isLoading: contributionsLoading } = useMemberContributions();
   const { data: monthlyTrends, isLoading: trendsLoading } = useMonthlyPaymentTrends(selectedYear);
   const { data: takafulContributions } = useMonthlyContributions('takaful');
   const { data: plusContributions } = useMonthlyContributions('plus');
 
   const handleLogout = () => navigate('/');
 
-  const handleExportPendingBalances = () => {
-    if (!pendingBalances || !stats) return;
-    
-    exportPendingBalancesToExcel({
-      data: pendingBalances,
-      fundType: pendingFilter,
-      stats,
-    });
-    
-    toast({
-      title: 'Export Complete',
-      description: 'Pending balances report has been downloaded.',
-    });
+  // Export handlers
+  const handleExportTakafulPendingPdf = () => {
+    if (!takafulPending) return;
+    exportTakafulPendingToPdf(takafulPending);
+    toast({ title: 'Export Complete', description: 'Takaful pending report downloaded as PDF.' });
+  };
+
+  const handleExportTakafulPendingExcel = () => {
+    if (!takafulPending) return;
+    const workbook = XLSX.utils.book_new();
+    const data = [
+      ['Sonhara Takaful - Pending Balances Report'],
+      ['Generated:', new Date().toLocaleDateString()],
+      [],
+      ['#', 'Name', 'Phone', 'Monthly Amount', 'Pending Amount', 'Pending Months'],
+      ...takafulPending.map((m, i) => [
+        i + 1,
+        m.name,
+        m.phone,
+        m.monthlyAmount,
+        m.totalPending,
+        m.pendingMonths.map(mo => formatMonth(mo)).join(', '),
+      ]),
+      ['', 'TOTAL', '', '', takafulPending.reduce((sum, m) => sum + m.totalPending, 0), ''],
+    ];
+    const sheet = XLSX.utils.aoa_to_sheet(data);
+    sheet['!cols'] = [{ wch: 5 }, { wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 40 }];
+    XLSX.utils.book_append_sheet(workbook, sheet, 'Takaful Pending');
+    XLSX.writeFile(workbook, `Sonhara_Takaful_Pending_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    toast({ title: 'Export Complete', description: 'Takaful pending report downloaded as Excel.' });
+  };
+
+  const handleExportPlusPendingPdf = () => {
+    if (!plusPending) return;
+    exportPlusPendingToPdf(plusPending);
+    toast({ title: 'Export Complete', description: 'Plus pending report downloaded as PDF.' });
+  };
+
+  const handleExportPlusPendingExcel = () => {
+    if (!plusPending) return;
+    const workbook = XLSX.utils.book_new();
+    const data = [
+      ['Sonhara Plus - Pending Balances Report'],
+      ['Generated:', new Date().toLocaleDateString()],
+      [],
+      ['#', 'Name', 'Phone', 'Monthly Amount', 'Pending Amount', 'Pending Months'],
+      ...plusPending.map((m, i) => [
+        i + 1,
+        m.name,
+        m.phone,
+        m.monthlyAmount,
+        m.totalPending,
+        m.pendingMonths.map(mo => formatMonth(mo)).join(', '),
+      ]),
+      ['', 'TOTAL', '', '', plusPending.reduce((sum, m) => sum + m.totalPending, 0), ''],
+    ];
+    const sheet = XLSX.utils.aoa_to_sheet(data);
+    sheet['!cols'] = [{ wch: 5 }, { wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 40 }];
+    XLSX.utils.book_append_sheet(workbook, sheet, 'Plus Pending');
+    XLSX.writeFile(workbook, `Sonhara_Plus_Pending_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    toast({ title: 'Export Complete', description: 'Plus pending report downloaded as Excel.' });
+  };
+
+  const handleExportContributionsPdf = () => {
+    if (!memberContributions) return;
+    exportMemberContributionsToPdf(memberContributions);
+    toast({ title: 'Export Complete', description: 'Member contributions report downloaded as PDF.' });
+  };
+
+  const handleExportContributionsExcel = () => {
+    if (!memberContributions) return;
+    const workbook = XLSX.utils.book_new();
+    const data = [
+      ['Sonhara - Member Contributions Report'],
+      ['Generated:', new Date().toLocaleDateString()],
+      [],
+      ['#', 'Name', 'Phone', 'Takaful Monthly', 'Takaful Paid', 'Takaful Pending', 'Plus Monthly', 'Plus Paid', 'Plus Pending', 'Total Paid', 'Total Pending'],
+      ...memberContributions.map((m, i) => [
+        i + 1,
+        m.name,
+        m.phone,
+        m.takafulMonthlyAmount,
+        m.takafulTotalPaid,
+        m.takafulTotalPending,
+        m.plusMonthlyAmount,
+        m.plusTotalPaid,
+        m.plusTotalPending,
+        m.totalPaid,
+        m.totalPending,
+      ]),
+      [
+        '', 'TOTAL', '',
+        '', memberContributions.reduce((sum, m) => sum + m.takafulTotalPaid, 0),
+        memberContributions.reduce((sum, m) => sum + m.takafulTotalPending, 0),
+        '', memberContributions.reduce((sum, m) => sum + m.plusTotalPaid, 0),
+        memberContributions.reduce((sum, m) => sum + m.plusTotalPending, 0),
+        memberContributions.reduce((sum, m) => sum + m.totalPaid, 0),
+        memberContributions.reduce((sum, m) => sum + m.totalPending, 0),
+      ],
+    ];
+    const sheet = XLSX.utils.aoa_to_sheet(data);
+    sheet['!cols'] = [{ wch: 5 }, { wch: 25 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }];
+    XLSX.utils.book_append_sheet(workbook, sheet, 'Contributions');
+    XLSX.writeFile(workbook, `Sonhara_Member_Contributions_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    toast({ title: 'Export Complete', description: 'Member contributions report downloaded as Excel.' });
   };
 
   const handleExportMonthlyTrends = () => {
     if (!monthlyTrends) return;
-    
     exportMonthlyTrendsToExcel(monthlyTrends, selectedYear);
-    
-    toast({
-      title: 'Export Complete',
-      description: 'Monthly trends report has been downloaded.',
-    });
+    toast({ title: 'Export Complete', description: 'Monthly trends report has been downloaded.' });
   };
 
   const handleExportFullReport = () => {
-    if (!pendingBalances || !monthlyTrends || !stats) return;
-    
+    if (!memberContributions || !monthlyTrends || !stats) return;
+    // Convert memberContributions to the format expected by exportFullReportToExcel
+    const pendingBalances = memberContributions.map(m => ({
+      id: m.id,
+      name: m.name,
+      phone: m.phone,
+      takafulPending: m.takafulTotalPending,
+      takafulPendingMonths: [],
+      plusPending: m.plusTotalPending,
+      plusPendingMonths: [],
+      totalPending: m.totalPending,
+    }));
     exportFullReportToExcel(pendingBalances, monthlyTrends, stats, selectedYear);
-    
-    toast({
-      title: 'Export Complete',
-      description: 'Complete financial report has been downloaded.',
-    });
+    toast({ title: 'Export Complete', description: 'Complete financial report has been downloaded.' });
   };
 
-  const isLoading = statsLoading || pendingLoading || trendsLoading;
+  const isLoading = statsLoading || takafulLoading || plusLoading || contributionsLoading || trendsLoading;
 
   // Calculate totals for pie charts
   const totalTakafulCollected = (stats?.takaful.totalCollected || 0) + (stats?.takaful.historicalPaid || 0);
@@ -204,72 +299,54 @@ export default function Reports() {
             />
           </div>
 
-          {/* Charts */}
-          <Tabs defaultValue="pending" className="space-y-6">
-            <TabsList className="grid w-full max-w-lg grid-cols-3">
-              <TabsTrigger value="pending">Pending Balances</TabsTrigger>
-              <TabsTrigger value="trends">Collection Trends</TabsTrigger>
-              <TabsTrigger value="breakdown">Fund Breakdown</TabsTrigger>
+          {/* Reports Tabs */}
+          <Tabs defaultValue="takaful-pending" className="space-y-6">
+            <TabsList className="grid w-full max-w-2xl grid-cols-5">
+              <TabsTrigger value="takaful-pending" className="text-xs sm:text-sm">Takaful Pending</TabsTrigger>
+              <TabsTrigger value="plus-pending" className="text-xs sm:text-sm">Plus Pending</TabsTrigger>
+              <TabsTrigger value="contributions" className="text-xs sm:text-sm">Contributions</TabsTrigger>
+              <TabsTrigger value="trends" className="text-xs sm:text-sm">Trends</TabsTrigger>
+              <TabsTrigger value="breakdown" className="text-xs sm:text-sm">Breakdown</TabsTrigger>
             </TabsList>
 
-            {/* Pending Balances Tab */}
-            <TabsContent value="pending">
+            {/* Takaful Pending Tab */}
+            <TabsContent value="takaful-pending">
               <div className="bg-card rounded-xl border border-border p-6">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                  <h3 className="font-serif text-xl font-bold">Pending Balances by Member</h3>
-                  <div className="flex items-center gap-3">
-                    <Select value={pendingFilter} onValueChange={(v) => setPendingFilter(v as typeof pendingFilter)}>
-                      <SelectTrigger className="w-[150px]">
-                        <SelectValue placeholder="Filter by fund" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Funds</SelectItem>
-                        <SelectItem value="takaful">Takaful Only</SelectItem>
-                        <SelectItem value="plus">Plus Only</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={handleExportPendingBalances}
-                      disabled={!pendingBalances || pendingBalances.length === 0}
-                    >
-                      <Download className="h-4 w-4 mr-2" />
-                      Export
+                  <div>
+                    <h3 className="font-serif text-xl font-bold text-navy">Takaful Pending Balances</h3>
+                    <p className="text-sm text-muted-foreground">Member-wise pending dues for Takaful fund</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={handleExportTakafulPendingExcel} disabled={!takafulPending?.length}>
+                      <FileSpreadsheet className="h-4 w-4 mr-2" />
+                      Excel
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handleExportTakafulPendingPdf} disabled={!takafulPending?.length}>
+                      <FileText className="h-4 w-4 mr-2" />
+                      PDF
                     </Button>
                   </div>
                 </div>
 
-                {pendingLoading ? (
+                {takafulLoading ? (
                   <div className="flex items-center justify-center py-12">
                     <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                   </div>
-                ) : pendingBalances && pendingBalances.length > 0 ? (
+                ) : takafulPending && takafulPending.length > 0 ? (
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>
                           <TableHead className="w-12">#</TableHead>
                           <TableHead>Member</TableHead>
-                          {(pendingFilter === 'all' || pendingFilter === 'takaful') && (
-                            <>
-                              <TableHead className="text-right">Takaful Pending</TableHead>
-                              <TableHead>Pending Months</TableHead>
-                            </>
-                          )}
-                          {(pendingFilter === 'all' || pendingFilter === 'plus') && (
-                            <>
-                              <TableHead className="text-right">Plus Pending</TableHead>
-                              <TableHead>Pending Months</TableHead>
-                            </>
-                          )}
-                          {pendingFilter === 'all' && (
-                            <TableHead className="text-right">Total</TableHead>
-                          )}
+                          <TableHead className="text-right">Monthly Amount</TableHead>
+                          <TableHead className="text-right">Pending Amount</TableHead>
+                          <TableHead>Pending Months</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {pendingBalances.map((member, index) => (
+                        {takafulPending.map((member, index) => (
                           <TableRow key={member.id}>
                             <TableCell className="font-medium">{index + 1}</TableCell>
                             <TableCell>
@@ -281,89 +358,235 @@ export default function Reports() {
                                 </div>
                               </div>
                             </TableCell>
-                            {(pendingFilter === 'all' || pendingFilter === 'takaful') && (
-                              <>
-                                <TableCell className="text-right font-medium text-warning">
-                                  {member.takafulPending > 0 ? formatCurrency(member.takafulPending) : '-'}
-                                </TableCell>
-                                <TableCell>
-                                  <div className="flex flex-wrap gap-1">
-                                    {member.takafulPendingMonths.slice(0, 3).map(month => (
-                                      <Badge key={month} variant="outline" className="text-xs">
-                                        {formatMonth(month)}
-                                      </Badge>
-                                    ))}
-                                    {member.takafulPendingMonths.length > 3 && (
-                                      <Badge variant="outline" className="text-xs">
-                                        +{member.takafulPendingMonths.length - 3} more
-                                      </Badge>
-                                    )}
-                                  </div>
-                                </TableCell>
-                              </>
-                            )}
-                            {(pendingFilter === 'all' || pendingFilter === 'plus') && (
-                              <>
-                                <TableCell className="text-right font-medium text-warning">
-                                  {member.plusPending > 0 ? formatCurrency(member.plusPending) : '-'}
-                                </TableCell>
-                                <TableCell>
-                                  <div className="flex flex-wrap gap-1">
-                                    {member.plusPendingMonths.slice(0, 3).map(month => (
-                                      <Badge key={month} variant="outline" className="text-xs">
-                                        {formatMonth(month)}
-                                      </Badge>
-                                    ))}
-                                    {member.plusPendingMonths.length > 3 && (
-                                      <Badge variant="outline" className="text-xs">
-                                        +{member.plusPendingMonths.length - 3} more
-                                      </Badge>
-                                    )}
-                                  </div>
-                                </TableCell>
-                              </>
-                            )}
-                            {pendingFilter === 'all' && (
-                              <TableCell className="text-right font-bold text-destructive">
-                                {formatCurrency(member.totalPending)}
-                              </TableCell>
-                            )}
+                            <TableCell className="text-right">{formatCurrency(member.monthlyAmount)}</TableCell>
+                            <TableCell className="text-right font-bold text-warning">
+                              {formatCurrency(member.totalPending)}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-wrap gap-1">
+                                {member.pendingMonths.slice(0, 3).map(month => (
+                                  <Badge key={month} variant="outline" className="text-xs">
+                                    {formatMonth(month)}
+                                  </Badge>
+                                ))}
+                                {member.pendingMonths.length > 3 && (
+                                  <Badge variant="outline" className="text-xs">
+                                    +{member.pendingMonths.length - 3} more
+                                  </Badge>
+                                )}
+                              </div>
+                            </TableCell>
                           </TableRow>
                         ))}
-                        {/* Totals row */}
                         <TableRow className="bg-muted/50 font-bold">
                           <TableCell></TableCell>
-                          <TableCell>TOTAL</TableCell>
-                          {(pendingFilter === 'all' || pendingFilter === 'takaful') && (
-                            <>
-                              <TableCell className="text-right text-warning">
-                                {formatCurrency(pendingBalances.reduce((sum, m) => sum + m.takafulPending, 0))}
-                              </TableCell>
-                              <TableCell></TableCell>
-                            </>
-                          )}
-                          {(pendingFilter === 'all' || pendingFilter === 'plus') && (
-                            <>
-                              <TableCell className="text-right text-warning">
-                                {formatCurrency(pendingBalances.reduce((sum, m) => sum + m.plusPending, 0))}
-                              </TableCell>
-                              <TableCell></TableCell>
-                            </>
-                          )}
-                          {pendingFilter === 'all' && (
-                            <TableCell className="text-right text-destructive">
-                              {formatCurrency(pendingBalances.reduce((sum, m) => sum + m.totalPending, 0))}
-                            </TableCell>
-                          )}
+                          <TableCell>TOTAL ({takafulPending.length} members)</TableCell>
+                          <TableCell></TableCell>
+                          <TableCell className="text-right text-destructive">
+                            {formatCurrency(takafulPending.reduce((sum, m) => sum + m.totalPending, 0))}
+                          </TableCell>
+                          <TableCell></TableCell>
                         </TableRow>
                       </TableBody>
                     </Table>
                   </div>
                 ) : (
                   <div className="text-center py-12 text-muted-foreground">
-                    <PieChart className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                    <Wallet className="h-16 w-16 mx-auto mb-4 opacity-50" />
                     <p className="text-lg font-medium">All caught up!</p>
-                    <p className="text-sm">No pending dues from any member.</p>
+                    <p className="text-sm">No pending Takaful dues from any member.</p>
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+
+            {/* Plus Pending Tab */}
+            <TabsContent value="plus-pending">
+              <div className="bg-card rounded-xl border border-border p-6">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                  <div>
+                    <h3 className="font-serif text-xl font-bold text-gold">Plus Pending Balances</h3>
+                    <p className="text-sm text-muted-foreground">Member-wise pending dues for Plus fund</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={handleExportPlusPendingExcel} disabled={!plusPending?.length}>
+                      <FileSpreadsheet className="h-4 w-4 mr-2" />
+                      Excel
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handleExportPlusPendingPdf} disabled={!plusPending?.length}>
+                      <FileText className="h-4 w-4 mr-2" />
+                      PDF
+                    </Button>
+                  </div>
+                </div>
+
+                {plusLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                ) : plusPending && plusPending.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-12">#</TableHead>
+                          <TableHead>Member</TableHead>
+                          <TableHead className="text-right">Monthly Amount</TableHead>
+                          <TableHead className="text-right">Pending Amount</TableHead>
+                          <TableHead>Pending Months</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {plusPending.map((member, index) => (
+                          <TableRow key={member.id}>
+                            <TableCell className="font-medium">{index + 1}</TableCell>
+                            <TableCell>
+                              <div>
+                                <div className="font-medium">{member.name}</div>
+                                <div className="text-sm text-muted-foreground flex items-center gap-1">
+                                  <Phone className="h-3 w-3" />
+                                  {member.phone}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right">{formatCurrency(member.monthlyAmount)}</TableCell>
+                            <TableCell className="text-right font-bold text-warning">
+                              {formatCurrency(member.totalPending)}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-wrap gap-1">
+                                {member.pendingMonths.slice(0, 3).map(month => (
+                                  <Badge key={month} variant="outline" className="text-xs">
+                                    {formatMonth(month)}
+                                  </Badge>
+                                ))}
+                                {member.pendingMonths.length > 3 && (
+                                  <Badge variant="outline" className="text-xs">
+                                    +{member.pendingMonths.length - 3} more
+                                  </Badge>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                        <TableRow className="bg-muted/50 font-bold">
+                          <TableCell></TableCell>
+                          <TableCell>TOTAL ({plusPending.length} members)</TableCell>
+                          <TableCell></TableCell>
+                          <TableCell className="text-right text-destructive">
+                            {formatCurrency(plusPending.reduce((sum, m) => sum + m.totalPending, 0))}
+                          </TableCell>
+                          <TableCell></TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <Wallet className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                    <p className="text-lg font-medium">All caught up!</p>
+                    <p className="text-sm">No pending Plus dues from any member.</p>
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+
+            {/* Member Contributions Tab */}
+            <TabsContent value="contributions">
+              <div className="bg-card rounded-xl border border-border p-6">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                  <div>
+                    <h3 className="font-serif text-xl font-bold">Member Contributions Summary</h3>
+                    <p className="text-sm text-muted-foreground">Complete contribution overview for all members</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={handleExportContributionsExcel} disabled={!memberContributions?.length}>
+                      <FileSpreadsheet className="h-4 w-4 mr-2" />
+                      Excel
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handleExportContributionsPdf} disabled={!memberContributions?.length}>
+                      <FileText className="h-4 w-4 mr-2" />
+                      PDF
+                    </Button>
+                  </div>
+                </div>
+
+                {contributionsLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                  </div>
+                ) : memberContributions && memberContributions.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-12">#</TableHead>
+                          <TableHead>Member</TableHead>
+                          <TableHead className="text-right">Takaful Monthly</TableHead>
+                          <TableHead className="text-right">Takaful Paid</TableHead>
+                          <TableHead className="text-right">Takaful Pending</TableHead>
+                          <TableHead className="text-right">Plus Monthly</TableHead>
+                          <TableHead className="text-right">Plus Paid</TableHead>
+                          <TableHead className="text-right">Plus Pending</TableHead>
+                          <TableHead className="text-right">Total Paid</TableHead>
+                          <TableHead className="text-right">Total Pending</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {memberContributions.map((member, index) => (
+                          <TableRow key={member.id}>
+                            <TableCell className="font-medium">{index + 1}</TableCell>
+                            <TableCell>
+                              <div>
+                                <div className="font-medium">{member.name}</div>
+                                <div className="text-sm text-muted-foreground flex items-center gap-1">
+                                  <Phone className="h-3 w-3" />
+                                  {member.phone}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right text-muted-foreground">{formatCurrency(member.takafulMonthlyAmount)}</TableCell>
+                            <TableCell className="text-right text-green-600">{formatCurrency(member.takafulTotalPaid)}</TableCell>
+                            <TableCell className="text-right text-warning">{member.takafulTotalPending > 0 ? formatCurrency(member.takafulTotalPending) : '-'}</TableCell>
+                            <TableCell className="text-right text-muted-foreground">{formatCurrency(member.plusMonthlyAmount)}</TableCell>
+                            <TableCell className="text-right text-green-600">{formatCurrency(member.plusTotalPaid)}</TableCell>
+                            <TableCell className="text-right text-warning">{member.plusTotalPending > 0 ? formatCurrency(member.plusTotalPending) : '-'}</TableCell>
+                            <TableCell className="text-right font-bold text-green-600">{formatCurrency(member.totalPaid)}</TableCell>
+                            <TableCell className="text-right font-bold text-destructive">{member.totalPending > 0 ? formatCurrency(member.totalPending) : '-'}</TableCell>
+                          </TableRow>
+                        ))}
+                        <TableRow className="bg-muted/50 font-bold">
+                          <TableCell></TableCell>
+                          <TableCell>TOTAL ({memberContributions.length} members)</TableCell>
+                          <TableCell></TableCell>
+                          <TableCell className="text-right text-green-600">
+                            {formatCurrency(memberContributions.reduce((sum, m) => sum + m.takafulTotalPaid, 0))}
+                          </TableCell>
+                          <TableCell className="text-right text-warning">
+                            {formatCurrency(memberContributions.reduce((sum, m) => sum + m.takafulTotalPending, 0))}
+                          </TableCell>
+                          <TableCell></TableCell>
+                          <TableCell className="text-right text-green-600">
+                            {formatCurrency(memberContributions.reduce((sum, m) => sum + m.plusTotalPaid, 0))}
+                          </TableCell>
+                          <TableCell className="text-right text-warning">
+                            {formatCurrency(memberContributions.reduce((sum, m) => sum + m.plusTotalPending, 0))}
+                          </TableCell>
+                          <TableCell className="text-right text-green-600">
+                            {formatCurrency(memberContributions.reduce((sum, m) => sum + m.totalPaid, 0))}
+                          </TableCell>
+                          <TableCell className="text-right text-destructive">
+                            {formatCurrency(memberContributions.reduce((sum, m) => sum + m.totalPending, 0))}
+                          </TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <Users className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                    <p className="text-lg font-medium">No members found</p>
+                    <p className="text-sm">Add members to see their contribution summary.</p>
                   </div>
                 )}
               </div>
@@ -418,7 +641,6 @@ export default function Reports() {
                     </ResponsiveContainer>
                   </div>
                   
-                  {/* Fund breakdown stats */}
                   <div className="mt-4 space-y-3">
                     <div className="flex justify-between p-3 rounded-lg bg-muted/30">
                       <span className="text-sm font-medium">Takaful Total</span>
@@ -455,7 +677,6 @@ export default function Reports() {
                     </ResponsiveContainer>
                   </div>
                   
-                  {/* Member stats by fund */}
                   <div className="mt-4 space-y-3">
                     <div className="flex justify-between p-3 rounded-lg bg-muted/30">
                       <span className="text-sm font-medium">Takaful Members</span>
