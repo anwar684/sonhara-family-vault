@@ -88,15 +88,27 @@ export default function MemberDetail() {
 
   // Calculate totals for Takaful
   const takafulPayments = payments?.filter(p => p.fund_type === 'takaful') || [];
-  const takafulPaid = takafulPayments.reduce((sum, p) => sum + (p.status === 'paid' ? p.amount : 0), 0);
-  const takafulPending = takafulPayments.reduce((sum, p) => sum + (p.status === 'pending' ? p.due_amount - p.amount : 0), 0);
+  const takafulPaid = takafulPayments.reduce(
+    (sum, p) => sum + (p.status === 'paid' || p.status === 'partial' ? p.amount : 0),
+    0
+  );
+  const takafulPending = takafulPayments.reduce(
+    (sum, p) => sum + (p.status === 'pending' || p.status === 'partial' ? p.due_amount - p.amount : 0),
+    0
+  );
   const takafulTotalPaid = (member.takaful_paid_before_entry || 0) + takafulPaid;
   const takafulTotalPending = (member.takaful_pending_before_entry || 0) + takafulPending;
-
+ 
   // Calculate totals for Plus
   const plusPayments = payments?.filter(p => p.fund_type === 'plus') || [];
-  const plusPaid = plusPayments.reduce((sum, p) => sum + (p.status === 'paid' ? p.amount : 0), 0);
-  const plusPending = plusPayments.reduce((sum, p) => sum + (p.status === 'pending' ? p.due_amount - p.amount : 0), 0);
+  const plusPaid = plusPayments.reduce(
+    (sum, p) => sum + (p.status === 'paid' || p.status === 'partial' ? p.amount : 0),
+    0
+  );
+  const plusPending = plusPayments.reduce(
+    (sum, p) => sum + (p.status === 'pending' || p.status === 'partial' ? p.due_amount - p.amount : 0),
+    0
+  );
   const plusTotalPaid = (member.plus_paid_before_entry || 0) + plusPaid;
   const plusTotalPending = (member.plus_pending_before_entry || 0) + plusPending;
 
