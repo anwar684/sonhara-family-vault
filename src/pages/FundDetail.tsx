@@ -4,12 +4,14 @@ import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, TrendingUp, Users, AlertCircle, Wallet, Calendar } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Users, AlertCircle, Wallet, Calendar, Heart } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDashboardStats, useMonthlyContributions, formatCurrency, formatMonth } from '@/hooks/useDashboardStats';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function FundDetail() {
   const { fundType } = useParams<{ fundType: string }>();
@@ -24,9 +26,28 @@ export default function FundDetail() {
     validFundType ? (fundType as 'takaful' | 'plus') : 'takaful'
   );
 
+  // Fetch total disbursed to beneficiaries for Takaful
+  const { data: totalDisbursed = 0 } = useQuery({
+    queryKey: ['total-disbursed'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('case_disbursements')
+        .select('amount');
+      
+      if (error) throw error;
+      return data?.reduce((sum, d) => sum + Number(d.amount), 0) || 0;
+    },
+    enabled: isTakaful,
+  });
+
+  // Redirect non-admins - match Dashboard pattern exactly
   useEffect(() => {
-    if (!authLoading && (!user || userRole !== 'admin')) {
-      navigate('/login');
+    if (!authLoading) {
+      if (!user) {
+        navigate('/login');
+      } else if (userRole !== 'admin') {
+        navigate('/my-dashboard');
+      }
     }
   }, [user, userRole, authLoading, navigate]);
 
@@ -36,7 +57,12 @@ export default function FundDetail() {
     }
   }, [validFundType, navigate]);
 
-  if (authLoading || !validFundType) {
+  // Don't render until auth is resolved
+  if (authLoading || !user || userRole !== 'admin') {
+    return null;
+  }
+
+  if (!validFundType) {
     return null;
   }
 
@@ -69,7 +95,10 @@ export default function FundDetail() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className={cn(
+          'grid gap-6 mb-8',
+          isTakaful ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-5' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4'
+        )}>
           <Card className={cn(
             'border-none shadow-lg',
             isTakaful ? 'bg-gradient-navy text-primary-foreground' : 'bg-gradient-gold text-navy-dark'
@@ -145,6 +174,24 @@ export default function FundDetail() {
               )}
             </CardContent>
           </Card>
+
+          {isTakaful && (
+            <Card className="border-none shadow-lg bg-gradient-navy text-primary-foreground">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium opacity-80">Given to Beneficiaries</CardTitle>
+                <Heart className="h-5 w-5 opacity-80" />
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <Skeleton className="h-8 w-32 bg-white/20" />
+                ) : (
+                  <p className="text-2xl font-bold font-serif">
+                    {formatCurrency(totalDisbursed)}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Monthly Trend Chart */}
@@ -156,7 +203,7 @@ export default function FundDetail() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-          {isLoading ? (
+            {isLoading ? (
               <Skeleton className="h-[300px] w-full" />
             ) : chartData.length === 0 ? (
               <div className="h-[300px] w-full flex items-center justify-center text-muted-foreground">
