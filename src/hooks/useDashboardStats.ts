@@ -61,7 +61,7 @@ export function useDashboardStats() {
         .filter(p => p.status === 'paid' || p.status === 'partial')
         .reduce((sum, p) => sum + Number(p.amount), 0);
       const takafulPending = takafulPayments
-        .filter(p => p.status === 'pending')
+        .filter(p => p.status === 'pending' || p.status === 'partial')
         .reduce((sum, p) => sum + Number(p.due_amount - p.amount), 0);
       const takafulCurrentMonth = takafulPayments
         .filter(p => p.month === currentMonth && p.status === 'paid')
@@ -78,7 +78,7 @@ export function useDashboardStats() {
         .filter(p => p.status === 'paid' || p.status === 'partial')
         .reduce((sum, p) => sum + Number(p.amount), 0);
       const plusPending = plusPayments
-        .filter(p => p.status === 'pending')
+        .filter(p => p.status === 'pending' || p.status === 'partial')
         .reduce((sum, p) => sum + Number(p.due_amount - p.amount), 0);
       const plusCurrentMonth = plusPayments
         .filter(p => p.month === currentMonth && p.status === 'paid')
