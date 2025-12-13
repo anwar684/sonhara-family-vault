@@ -50,6 +50,7 @@ export function EditMemberDialog({ open, onOpenChange, member }: EditMemberDialo
   const [accountPassword, setAccountPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [creatingAccount, setCreatingAccount] = useState(false);
+  const [resettingPassword, setResettingPassword] = useState(false);
   const [memberRole, setMemberRole] = useState<Database['public']['Enums']['app_role']>('member');
   const [updatingRole, setUpdatingRole] = useState(false);
 
@@ -152,6 +153,46 @@ export function EditMemberDialog({ open, onOpenChange, member }: EditMemberDialo
       toast({ title: 'Error', description: message, variant: 'destructive' });
     } finally {
       setCreatingAccount(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!member?.user_id || !accountPassword) {
+      toast({ title: 'Error', description: 'New password is required', variant: 'destructive' });
+      return;
+    }
+
+    if (accountPassword.length < 6) {
+      toast({ title: 'Error', description: 'Password must be at least 6 characters', variant: 'destructive' });
+      return;
+    }
+
+    setResettingPassword(true);
+    try {
+      const response = await supabase.functions.invoke('create-member-account', {
+        body: {
+          email: member.email,
+          password: accountPassword,
+          memberId: member.id,
+          fullName: member.name,
+        },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      if (response.data?.error) {
+        throw new Error(response.data.error);
+      }
+
+      toast({ title: 'Success', description: 'Password has been reset successfully' });
+      setAccountPassword('');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to reset password';
+      toast({ title: 'Error', description: message, variant: 'destructive' });
+    } finally {
+      setResettingPassword(false);
     }
   };
 
@@ -376,6 +417,46 @@ export function EditMemberDialog({ open, onOpenChange, member }: EditMemberDialo
                       <SelectItem value="admin">Admin</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+                
+                {/* Reset Password Section */}
+                <div className="pt-3 border-t border-border/50 space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Reset member's password if they forgot it:
+                  </p>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <div className="grid gap-2">
+                      <Label>New Password *</Label>
+                      <div className="relative">
+                        <Input
+                          type={showPassword ? 'text' : 'password'}
+                          value={accountPassword}
+                          onChange={(e) => setAccountPassword(e.target.value)}
+                          placeholder="Min 6 characters"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-full px-3"
+                          onClick={() => setShowPassword(!showPassword)}
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="flex items-end">
+                      <Button 
+                        onClick={handleResetPassword} 
+                        disabled={resettingPassword || !accountPassword}
+                        variant="secondary"
+                        className="w-full"
+                      >
+                        {resettingPassword && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                        Reset Password
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </div>
             ) : (
