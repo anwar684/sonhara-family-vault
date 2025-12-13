@@ -49,7 +49,7 @@ export function useDashboardStats() {
       // Calculate Takaful stats
       const takafulPayments = payments?.filter(p => p.fund_type === 'takaful') || [];
       const takafulCollected = takafulPayments
-        .filter(p => p.status === 'paid')
+        .filter(p => p.status === 'paid' || p.status === 'partial')
         .reduce((sum, p) => sum + Number(p.amount), 0);
       const takafulPending = takafulPayments
         .filter(p => p.status === 'pending')
@@ -66,7 +66,7 @@ export function useDashboardStats() {
       // Calculate Plus stats
       const plusPayments = payments?.filter(p => p.fund_type === 'plus') || [];
       const plusCollected = plusPayments
-        .filter(p => p.status === 'paid')
+        .filter(p => p.status === 'paid' || p.status === 'partial')
         .reduce((sum, p) => sum + Number(p.amount), 0);
       const plusPending = plusPayments
         .filter(p => p.status === 'pending')
