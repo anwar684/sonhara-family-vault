@@ -41,10 +41,11 @@ export function usePendingBalances(fundType?: 'takaful' | 'plus') {
       if (membersError) throw membersError;
 
       // Fetch all pending payments
+      // Fetch all pending and partial payments
       const { data: payments, error: paymentsError } = await supabase
         .from('payments')
         .select('*')
-        .eq('status', 'pending');
+        .in('status', ['pending', 'partial']);
 
       if (paymentsError) throw paymentsError;
 
@@ -113,7 +114,7 @@ export function useReportStats() {
         .filter(p => p.status === 'paid')
         .reduce((sum, p) => sum + Number(p.amount), 0);
       const takafulPending = takafulPayments
-        .filter(p => p.status === 'pending')
+        .filter(p => p.status === 'pending' || p.status === 'partial')
         .reduce((sum, p) => sum + Number(p.due_amount - p.amount), 0);
       const takafulHistoricalPaid = members?.reduce((sum, m) => sum + Number(m.takaful_paid_before_entry || 0), 0) || 0;
       const takafulHistoricalPending = members?.reduce((sum, m) => sum + Number(m.takaful_pending_before_entry || 0), 0) || 0;
@@ -121,7 +122,7 @@ export function useReportStats() {
       
       // Count members with pending takaful
       const membersWithTakafulPending = new Set(
-        takafulPayments.filter(p => p.status === 'pending').map(p => p.member_id)
+        takafulPayments.filter(p => p.status === 'pending' || p.status === 'partial').map(p => p.member_id)
       ).size;
 
       // Calculate Plus stats
@@ -130,7 +131,7 @@ export function useReportStats() {
         .filter(p => p.status === 'paid')
         .reduce((sum, p) => sum + Number(p.amount), 0);
       const plusPending = plusPayments
-        .filter(p => p.status === 'pending')
+        .filter(p => p.status === 'pending' || p.status === 'partial')
         .reduce((sum, p) => sum + Number(p.due_amount - p.amount), 0);
       const plusHistoricalPaid = members?.reduce((sum, m) => sum + Number(m.plus_paid_before_entry || 0), 0) || 0;
       const plusHistoricalPending = members?.reduce((sum, m) => sum + Number(m.plus_pending_before_entry || 0), 0) || 0;
@@ -138,7 +139,7 @@ export function useReportStats() {
       
       // Count members with pending plus
       const membersWithPlusPending = new Set(
-        plusPayments.filter(p => p.status === 'pending').map(p => p.member_id)
+        plusPayments.filter(p => p.status === 'pending' || p.status === 'partial').map(p => p.member_id)
       ).size;
 
       return {
@@ -194,13 +195,13 @@ export function useMonthlyPaymentTrends(year: string) {
         if (payment.fund_type === 'takaful') {
           if (payment.status === 'paid') {
             monthlyData[payment.month].takafulPaid += Number(payment.amount);
-          } else {
+          } else if (payment.status === 'pending' || payment.status === 'partial') {
             monthlyData[payment.month].takafulPending += Number(payment.due_amount - payment.amount);
           }
         } else {
           if (payment.status === 'paid') {
             monthlyData[payment.month].plusPaid += Number(payment.amount);
-          } else {
+          } else if (payment.status === 'pending' || payment.status === 'partial') {
             monthlyData[payment.month].plusPending += Number(payment.due_amount - payment.amount);
           }
         }
