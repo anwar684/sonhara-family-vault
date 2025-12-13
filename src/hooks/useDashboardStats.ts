@@ -41,6 +41,15 @@ export function useDashboardStats() {
 
       if (paymentsError) throw paymentsError;
 
+      // Fetch total disbursed to beneficiaries (funded from Takaful only)
+      const { data: disbursements, error: disbursementsError } = await supabase
+        .from('case_disbursements')
+        .select('amount');
+
+      if (disbursementsError) throw disbursementsError;
+
+      const totalDisbursed = disbursements?.reduce((sum, d) => sum + Number(d.amount), 0) || 0;
+
       const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
 
       const totalMembers = members?.length || 0;
@@ -84,7 +93,7 @@ export function useDashboardStats() {
         totalMembers,
         activeMembers,
         takaful: {
-          totalCollected: takafulCollected + takafulHistoricalPaid,
+          totalCollected: takafulCollected + takafulHistoricalPaid - totalDisbursed,
           totalPending: takafulPending + takafulHistoricalPending,
           activeMembers: takafulActiveMembers,
           currentMonthCollection: takafulCurrentMonth,
