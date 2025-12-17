@@ -23,7 +23,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatCurrency } from '@/lib/mockData';
 import { Payment, FundType } from '@/types';
-import { Plus, Search, Download, CreditCard, Loader2, Upload } from 'lucide-react';
+import { Plus, Search, Download, CreditCard, Loader2, Upload, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useFamilyMembers } from '@/hooks/useFamilyMembers';
@@ -81,6 +81,87 @@ export default function Payments() {
       toast({
         title: 'Error',
         description: error.message || 'Failed to record payment.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Generate pending dues mutation
+  const generatePendingDues = useMutation({
+    mutationFn: async () => {
+      const currentMonth = new Date().toISOString().slice(0, 7);
+      const activeMembers = members.filter((m) => m.status === 'active');
+      
+      // Get existing payments for current month
+      const { data: existingPayments, error: fetchError } = await supabase
+        .from('payments')
+        .select('member_id, fund_type')
+        .eq('month', currentMonth);
+      
+      if (fetchError) throw fetchError;
+
+      const existingSet = new Set(
+        (existingPayments || []).map((p) => `${p.member_id}-${p.fund_type}`)
+      );
+
+      const pendingRecords: Array<{
+        member_id: string;
+        fund_type: string;
+        amount: number;
+        due_amount: number;
+        month: string;
+        status: string;
+      }> = [];
+
+      for (const member of activeMembers) {
+        // Check Takaful
+        if (member.takaful_amount > 0 && !existingSet.has(`${member.id}-takaful`)) {
+          pendingRecords.push({
+            member_id: member.id,
+            fund_type: 'takaful',
+            amount: 0,
+            due_amount: member.takaful_amount,
+            month: currentMonth,
+            status: 'pending',
+          });
+        }
+        // Check Plus
+        if (member.plus_amount > 0 && !existingSet.has(`${member.id}-plus`)) {
+          pendingRecords.push({
+            member_id: member.id,
+            fund_type: 'plus',
+            amount: 0,
+            due_amount: member.plus_amount,
+            month: currentMonth,
+            status: 'pending',
+          });
+        }
+      }
+
+      if (pendingRecords.length === 0) {
+        return { count: 0 };
+      }
+
+      const { error: insertError } = await supabase
+        .from('payments')
+        .insert(pendingRecords);
+      
+      if (insertError) throw insertError;
+      return { count: pendingRecords.length };
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      toast({
+        title: 'Pending Dues Generated',
+        description: data.count > 0 
+          ? `${data.count} pending payment records created for the current month.`
+          : 'All members already have payment records for this month.',
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to generate pending dues.',
         variant: 'destructive',
       });
     },
@@ -196,6 +277,18 @@ export default function Payments() {
               <Button variant="outline" onClick={() => setIsImportModalOpen(true)}>
                 <Upload className="h-4 w-4 mr-2" />
                 Import
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => generatePendingDues.mutate()}
+                disabled={generatePendingDues.isPending}
+              >
+                {generatePendingDues.isPending ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <AlertCircle className="h-4 w-4 mr-2" />
+                )}
+                Generate Pending Dues
               </Button>
               <Button variant="gold" onClick={() => setIsAddModalOpen(true)}>
                 <CreditCard className="h-4 w-4 mr-2" />
