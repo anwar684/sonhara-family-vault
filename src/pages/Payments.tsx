@@ -86,13 +86,23 @@ export default function Payments() {
     },
   });
 
-  // Generate pending dues mutation
-  const generatePendingDues = useMutation({
-    mutationFn: async () => {
+  // State for pending dues preview
+  const [isPendingPreviewOpen, setIsPendingPreviewOpen] = useState(false);
+  const [pendingPreview, setPendingPreview] = useState<Array<{
+    member_id: string;
+    member_name: string;
+    fund_type: string;
+    due_amount: number;
+  }>>([]);
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
+
+  // Calculate pending dues preview
+  const calculatePendingDues = async () => {
+    setIsLoadingPreview(true);
+    try {
       const currentMonth = new Date().toISOString().slice(0, 7);
       const activeMembers = members.filter((m) => m.status === 'active');
       
-      // Get existing payments for current month
       const { data: existingPayments, error: fetchError } = await supabase
         .from('payments')
         .select('member_id, fund_type')
@@ -104,39 +114,53 @@ export default function Payments() {
         (existingPayments || []).map((p) => `${p.member_id}-${p.fund_type}`)
       );
 
-      const pendingRecords: Array<{
-        member_id: string;
-        fund_type: string;
-        amount: number;
-        due_amount: number;
-        month: string;
-        status: string;
-      }> = [];
+      const preview: typeof pendingPreview = [];
 
       for (const member of activeMembers) {
-        // Check Takaful
         if (member.takaful_amount > 0 && !existingSet.has(`${member.id}-takaful`)) {
-          pendingRecords.push({
+          preview.push({
             member_id: member.id,
+            member_name: member.name,
             fund_type: 'takaful',
-            amount: 0,
             due_amount: member.takaful_amount,
-            month: currentMonth,
-            status: 'pending',
           });
         }
-        // Check Plus
         if (member.plus_amount > 0 && !existingSet.has(`${member.id}-plus`)) {
-          pendingRecords.push({
+          preview.push({
             member_id: member.id,
+            member_name: member.name,
             fund_type: 'plus',
-            amount: 0,
             due_amount: member.plus_amount,
-            month: currentMonth,
-            status: 'pending',
           });
         }
       }
+
+      setPendingPreview(preview);
+      setIsPendingPreviewOpen(true);
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to calculate pending dues.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoadingPreview(false);
+    }
+  };
+
+  // Generate pending dues mutation
+  const generatePendingDues = useMutation({
+    mutationFn: async () => {
+      const currentMonth = new Date().toISOString().slice(0, 7);
+      
+      const pendingRecords = pendingPreview.map((p) => ({
+        member_id: p.member_id,
+        fund_type: p.fund_type,
+        amount: 0,
+        due_amount: p.due_amount,
+        month: currentMonth,
+        status: 'pending',
+      }));
 
       if (pendingRecords.length === 0) {
         return { count: 0 };
@@ -151,11 +175,11 @@ export default function Payments() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['payments'] });
+      setIsPendingPreviewOpen(false);
+      setPendingPreview([]);
       toast({
         title: 'Pending Dues Generated',
-        description: data.count > 0 
-          ? `${data.count} pending payment records created for the current month.`
-          : 'All members already have payment records for this month.',
+        description: `${data.count} pending payment records created for the current month.`,
       });
     },
     onError: (error: Error) => {
@@ -280,10 +304,10 @@ export default function Payments() {
               </Button>
               <Button 
                 variant="outline" 
-                onClick={() => generatePendingDues.mutate()}
-                disabled={generatePendingDues.isPending}
+                onClick={calculatePendingDues}
+                disabled={isLoadingPreview}
               >
-                {generatePendingDues.isPending ? (
+                {isLoadingPreview ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 ) : (
                   <AlertCircle className="h-4 w-4 mr-2" />
@@ -353,6 +377,75 @@ export default function Payments() {
           </Tabs>
         </div>
       </main>
+
+      {/* Pending Dues Preview Modal */}
+      <Dialog open={isPendingPreviewOpen} onOpenChange={setIsPendingPreviewOpen}>
+        <DialogContent className="sm:max-w-[550px]">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-xl">Pending Dues Preview</DialogTitle>
+            <DialogDescription>
+              The following pending payment records will be created for {new Date().toISOString().slice(0, 7)}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            {pendingPreview.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">
+                All active members already have payment records for this month.
+              </p>
+            ) : (
+              <div className="max-h-[300px] overflow-y-auto">
+                <table className="w-full text-sm">
+                  <thead className="sticky top-0 bg-background border-b">
+                    <tr>
+                      <th className="text-left py-2 px-2">Member</th>
+                      <th className="text-left py-2 px-2">Fund</th>
+                      <th className="text-right py-2 px-2">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pendingPreview.map((item, index) => (
+                      <tr key={index} className="border-b last:border-0">
+                        <td className="py-2 px-2">{item.member_name}</td>
+                        <td className="py-2 px-2">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                            item.fund_type === 'takaful' 
+                              ? 'bg-gold/20 text-gold-dark' 
+                              : 'bg-navy/20 text-navy'
+                          }`}>
+                            {item.fund_type === 'takaful' ? 'Takaful' : 'Plus'}
+                          </span>
+                        </td>
+                        <td className="py-2 px-2 text-right">{formatCurrency(item.due_amount)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <div className="mt-4 pt-4 border-t flex justify-between text-sm font-medium">
+                  <span>Total Records: {pendingPreview.length}</span>
+                  <span>Total Amount: {formatCurrency(pendingPreview.reduce((sum, p) => sum + p.due_amount, 0))}</span>
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsPendingPreviewOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              variant="gold" 
+              onClick={() => generatePendingDues.mutate()}
+              disabled={generatePendingDues.isPending || pendingPreview.length === 0}
+            >
+              {generatePendingDues.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Plus className="h-4 w-4 mr-2" />
+              )}
+              Generate {pendingPreview.length} Records
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Add Payment Modal */}
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
