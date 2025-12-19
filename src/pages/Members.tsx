@@ -133,14 +133,14 @@ export default function Members() {
                 Manage {members.length} family members and their contribution settings
               </p>
             </div>
-            <div className="flex items-center gap-3">
-              <Button variant="outline" onClick={() => setIsImportModalOpen(true)}>
-                <Upload className="h-4 w-4 mr-2" />
-                Import
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <Button variant="outline" size="sm" className="text-xs sm:text-sm" onClick={() => setIsImportModalOpen(true)}>
+                <Upload className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Import</span>
               </Button>
-              <Button variant="gold" onClick={() => setIsAddModalOpen(true)}>
-                <UserPlus className="h-4 w-4 mr-2" />
-                Add Member
+              <Button variant="gold" size="sm" className="text-xs sm:text-sm" onClick={() => setIsAddModalOpen(true)}>
+                <UserPlus className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Add Member</span>
               </Button>
             </div>
           </div>

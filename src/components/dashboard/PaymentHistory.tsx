@@ -144,17 +144,18 @@ export function PaymentHistory({ payments, showMember = false, memberNames = {} 
         <div
           key={payment.id}
           className={cn(
-            'flex items-center justify-between p-4 rounded-xl border transition-all hover:shadow-md',
+            'p-3 sm:p-4 rounded-xl border transition-all hover:shadow-md',
             payment.status === 'paid' && 'border-success/20 bg-success/5',
             payment.status === 'partial' && 'border-warning/20 bg-warning/5',
             payment.status === 'pending' && 'border-border bg-card'
           )}
         >
-          <div className="flex items-center gap-4">
-            {getStatusIcon(payment.status)}
-            <div>
+          {/* Mobile Layout */}
+          <div className="sm:hidden space-y-3">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="font-medium">{formatMonth(payment.month)}</span>
+                {getStatusIcon(payment.status)}
+                <span className="font-medium text-sm">{formatMonth(payment.month)}</span>
                 <span
                   className={cn(
                     'px-2 py-0.5 rounded-full text-xs font-medium',
@@ -166,59 +167,139 @@ export function PaymentHistory({ payments, showMember = false, memberNames = {} 
                   {payment.fundType === 'takaful' ? 'Takaful' : 'Plus'}
                 </span>
               </div>
-              {showMember && memberNames[payment.memberId] && (
-                <p className="text-sm text-muted-foreground">
-                  {memberNames[payment.memberId]}
+              <div className="flex items-center gap-2">
+                {getStatusBadge(payment.status)}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" disabled={loadingId === payment.id}>
+                      {loadingId === payment.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <MoreVertical className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="bg-popover">
+                    {payment.status === 'pending' && (
+                      <DropdownMenuItem onClick={() => handleMarkAsPaid(payment)}>
+                        <CheckCheck className="mr-2 h-4 w-4" />
+                        Mark as Paid
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem 
+                      onClick={() => handleDeleteClick(payment)}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+            
+            {showMember && memberNames[payment.memberId] && (
+              <p className="text-sm text-muted-foreground">
+                {memberNames[payment.memberId]}
+              </p>
+            )}
+            
+            <div className="flex items-center justify-between pt-2 border-t border-border/50">
+              <div>
+                <p className="text-xs text-muted-foreground">Amount</p>
+                <p className="font-semibold text-sm">
+                  {formatCurrency(payment.amount)} / {formatCurrency(payment.dueAmount)}
                 </p>
+              </div>
+              {payment.status !== 'paid' && (
+                <div className="text-right">
+                  <p className="text-xs text-muted-foreground">Pending</p>
+                  <p className="text-sm font-medium text-destructive">
+                    {formatCurrency(payment.dueAmount - payment.amount)}
+                  </p>
+                </div>
               )}
               {payment.paidDate && (
-                <p className="text-xs text-muted-foreground">
-                  Paid on {new Date(payment.paidDate).toLocaleDateString()}
-                </p>
+                <div className="text-right">
+                  <p className="text-xs text-muted-foreground">Paid on</p>
+                  <p className="text-sm">{new Date(payment.paidDate).toLocaleDateString()}</p>
+                </div>
               )}
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="text-right">
-              <p className="font-semibold">
-                {formatCurrency(payment.amount)}
-                <span className="text-muted-foreground font-normal">
-                  {' '}/ {formatCurrency(payment.dueAmount)}
-                </span>
-              </p>
-              {payment.status !== 'paid' && (
-                <p className="text-sm text-destructive">
-                  Pending: {formatCurrency(payment.dueAmount - payment.amount)}
-                </p>
-              )}
-            </div>
-            {getStatusBadge(payment.status)}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8" disabled={loadingId === payment.id}>
-                  {loadingId === payment.id ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <MoreVertical className="h-4 w-4" />
-                  )}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-popover">
-                {payment.status === 'pending' && (
-                  <DropdownMenuItem onClick={() => handleMarkAsPaid(payment)}>
-                    <CheckCheck className="mr-2 h-4 w-4" />
-                    Mark as Paid
-                  </DropdownMenuItem>
+
+          {/* Desktop Layout */}
+          <div className="hidden sm:flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              {getStatusIcon(payment.status)}
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">{formatMonth(payment.month)}</span>
+                  <span
+                    className={cn(
+                      'px-2 py-0.5 rounded-full text-xs font-medium',
+                      payment.fundType === 'takaful'
+                        ? 'bg-navy/10 text-navy'
+                        : 'bg-gold/20 text-gold-dark'
+                    )}
+                  >
+                    {payment.fundType === 'takaful' ? 'Takaful' : 'Plus'}
+                  </span>
+                </div>
+                {showMember && memberNames[payment.memberId] && (
+                  <p className="text-sm text-muted-foreground">
+                    {memberNames[payment.memberId]}
+                  </p>
                 )}
-                <DropdownMenuItem 
-                  onClick={() => handleDeleteClick(payment)}
-                  className="text-destructive focus:text-destructive"
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                {payment.paidDate && (
+                  <p className="text-xs text-muted-foreground">
+                    Paid on {new Date(payment.paidDate).toLocaleDateString()}
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="text-right">
+                <p className="font-semibold">
+                  {formatCurrency(payment.amount)}
+                  <span className="text-muted-foreground font-normal">
+                    {' '}/ {formatCurrency(payment.dueAmount)}
+                  </span>
+                </p>
+                {payment.status !== 'paid' && (
+                  <p className="text-sm text-destructive">
+                    Pending: {formatCurrency(payment.dueAmount - payment.amount)}
+                  </p>
+                )}
+              </div>
+              {getStatusBadge(payment.status)}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" disabled={loadingId === payment.id}>
+                    {loadingId === payment.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <MoreVertical className="h-4 w-4" />
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="bg-popover">
+                  {payment.status === 'pending' && (
+                    <DropdownMenuItem onClick={() => handleMarkAsPaid(payment)}>
+                      <CheckCheck className="mr-2 h-4 w-4" />
+                      Mark as Paid
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem 
+                    onClick={() => handleDeleteClick(payment)}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </div>
       ))}
