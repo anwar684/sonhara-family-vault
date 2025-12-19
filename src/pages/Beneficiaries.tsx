@@ -76,14 +76,14 @@ export default function Beneficiaries() {
                 Manage humanitarian aid requests funded by Sonhara Takaful
               </p>
             </div>
-            <div className="flex items-center gap-3">
-              <Button variant="outline" onClick={() => setAddBeneficiaryOpen(true)}>
-                <UserPlus className="h-4 w-4 mr-2" />
-                Add Beneficiary
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <Button variant="outline" size="sm" className="text-xs sm:text-sm" onClick={() => setAddBeneficiaryOpen(true)}>
+                <UserPlus className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Add Beneficiary</span>
               </Button>
-              <Button variant="gold" onClick={() => setRequestAssistanceOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Request Assistance
+              <Button variant="gold" size="sm" className="text-xs sm:text-sm" onClick={() => setRequestAssistanceOpen(true)}>
+                <Plus className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Request Assistance</span>
               </Button>
             </div>
           </div>

@@ -244,10 +244,10 @@ export default function Reports() {
                 Comprehensive financial reports for both funds
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
               <Select value={selectedYear} onValueChange={setSelectedYear}>
-                <SelectTrigger className="w-[120px]">
-                  <Calendar className="h-4 w-4 mr-2" />
+                <SelectTrigger className="w-[100px] sm:w-[120px]">
+                  <Calendar className="h-4 w-4 sm:mr-2" />
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -258,15 +258,17 @@ export default function Reports() {
               </Select>
               <Button 
                 variant="gold" 
+                size="sm"
+                className="text-xs sm:text-sm"
                 onClick={handleExportFullReport}
                 disabled={isLoading}
               >
                 {isLoading ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 sm:mr-2 animate-spin" />
                 ) : (
-                  <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  <FileSpreadsheet className="h-4 w-4 sm:mr-2" />
                 )}
-                Export Full Report
+                <span className="hidden sm:inline">Export Full Report</span>
               </Button>
             </div>
           </div>
@@ -301,13 +303,15 @@ export default function Reports() {
 
           {/* Reports Tabs */}
           <Tabs defaultValue="takaful-pending" className="space-y-6">
-            <TabsList className="grid w-full max-w-2xl grid-cols-5">
-              <TabsTrigger value="takaful-pending" className="text-xs sm:text-sm">Takaful Pending</TabsTrigger>
-              <TabsTrigger value="plus-pending" className="text-xs sm:text-sm">Plus Pending</TabsTrigger>
-              <TabsTrigger value="contributions" className="text-xs sm:text-sm">Contributions</TabsTrigger>
-              <TabsTrigger value="trends" className="text-xs sm:text-sm">Trends</TabsTrigger>
-              <TabsTrigger value="breakdown" className="text-xs sm:text-sm">Breakdown</TabsTrigger>
-            </TabsList>
+            <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+              <TabsList className="inline-flex w-auto min-w-full sm:grid sm:w-full sm:max-w-2xl sm:grid-cols-5">
+                <TabsTrigger value="takaful-pending" className="text-xs sm:text-sm whitespace-nowrap">Takaful</TabsTrigger>
+                <TabsTrigger value="plus-pending" className="text-xs sm:text-sm whitespace-nowrap">Plus</TabsTrigger>
+                <TabsTrigger value="contributions" className="text-xs sm:text-sm whitespace-nowrap">Contrib.</TabsTrigger>
+                <TabsTrigger value="trends" className="text-xs sm:text-sm whitespace-nowrap">Trends</TabsTrigger>
+                <TabsTrigger value="breakdown" className="text-xs sm:text-sm whitespace-nowrap">Breakdown</TabsTrigger>
+              </TabsList>
+            </div>
 
             {/* Takaful Pending Tab */}
             <TabsContent value="takaful-pending">

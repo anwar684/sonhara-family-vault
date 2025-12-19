@@ -113,23 +113,25 @@ export default function Dashboard() {
               <h1 className="font-serif text-3xl font-bold text-navy mb-1">Admin Dashboard</h1>
               <p className="text-muted-foreground">Overview of both family funds and member activities</p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
               <Button 
                 variant="outline" 
+                size="sm"
+                className="text-xs sm:text-sm"
                 onClick={handleRefresh}
                 disabled={isRefreshing}
               >
-                <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-                Refresh
+                <RefreshCw className={`h-4 w-4 sm:mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">Refresh</span>
               </Button>
-              <Button variant="outline">
-                <Download className="h-4 w-4 mr-2" />
-                Export
+              <Button variant="outline" size="sm" className="text-xs sm:text-sm">
+                <Download className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Export</span>
               </Button>
-              <Button variant="gold" asChild>
+              <Button variant="gold" size="sm" className="text-xs sm:text-sm" asChild>
                 <Link to="/members/new">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Member
+                  <Plus className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Add Member</span>
                 </Link>
               </Button>
             </div>

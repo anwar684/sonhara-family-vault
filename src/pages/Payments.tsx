@@ -293,30 +293,32 @@ export default function Payments() {
                 Track and record contributions for both funds
               </p>
             </div>
-            <div className="flex items-center gap-3">
-              <Button variant="outline">
-                <Download className="h-4 w-4 mr-2" />
-                Export
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              <Button variant="outline" size="sm" className="text-xs sm:text-sm">
+                <Download className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Export</span>
               </Button>
-              <Button variant="outline" onClick={() => setIsImportModalOpen(true)}>
-                <Upload className="h-4 w-4 mr-2" />
-                Import
+              <Button variant="outline" size="sm" className="text-xs sm:text-sm" onClick={() => setIsImportModalOpen(true)}>
+                <Upload className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Import</span>
               </Button>
               <Button 
                 variant="outline" 
+                size="sm"
+                className="text-xs sm:text-sm"
                 onClick={calculatePendingDues}
                 disabled={isLoadingPreview}
               >
                 {isLoadingPreview ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 sm:mr-2 animate-spin" />
                 ) : (
-                  <AlertCircle className="h-4 w-4 mr-2" />
+                  <AlertCircle className="h-4 w-4 sm:mr-2" />
                 )}
-                Generate Pending Dues
+                <span className="hidden sm:inline">Generate Pending</span>
               </Button>
-              <Button variant="gold" onClick={() => setIsAddModalOpen(true)}>
-                <CreditCard className="h-4 w-4 mr-2" />
-                Record Payment
+              <Button variant="gold" size="sm" className="text-xs sm:text-sm" onClick={() => setIsAddModalOpen(true)}>
+                <CreditCard className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Record Payment</span>
               </Button>
             </div>
           </div>
